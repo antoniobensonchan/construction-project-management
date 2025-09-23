@@ -1,0 +1,562 @@
+[
+{
+  "model": "projects.project",
+  "pk": 7,
+  "fields": {
+    "name": "new project 1",
+    "description": "test on aug 25",
+    "start_date": "2025-09-01",
+    "end_date": "2025-09-30",
+    "status": "planning",
+    "created_at": "2025-08-25T13:09:32.035Z",
+    "updated_at": "2025-08-25T13:09:32.035Z"
+  }
+},
+{
+  "model": "projects.project",
+  "pk": 6,
+  "fields": {
+    "name": "kaman project",
+    "description": "test",
+    "start_date": "2025-08-19",
+    "end_date": "2025-09-03",
+    "status": "planning",
+    "created_at": "2025-08-23T14:56:31.865Z",
+    "updated_at": "2025-08-23T15:59:02.605Z"
+  }
+},
+{
+  "model": "projects.project",
+  "pk": 5,
+  "fields": {
+    "name": "学校教学楼建设项目",
+    "description": "新建5层教学楼，包含30间教室和配套设施",
+    "start_date": "2025-02-04",
+    "end_date": "2025-07-24",
+    "status": "completed",
+    "created_at": "2025-08-23T14:54:27.085Z",
+    "updated_at": "2025-08-23T14:54:27.085Z"
+  }
+},
+{
+  "model": "projects.project",
+  "pk": 4,
+  "fields": {
+    "name": "老旧办公楼改造项目",
+    "description": "对建于1990年代的办公楼进行现代化改造，包括外立面、内部装修和设备更新",
+    "start_date": "2025-09-07",
+    "end_date": "2025-12-21",
+    "status": "planning",
+    "created_at": "2025-08-23T14:54:27.078Z",
+    "updated_at": "2025-08-23T14:54:27.078Z"
+  }
+},
+{
+  "model": "projects.project",
+  "pk": 3,
+  "fields": {
+    "name": "城市商业综合体项目",
+    "description": "集购物、餐饮、娱乐于一体的大型商业综合体，地下2层，地上6层",
+    "start_date": "2025-06-24",
+    "end_date": "2026-06-19",
+    "status": "active",
+    "created_at": "2025-08-23T14:54:27.073Z",
+    "updated_at": "2025-08-23T14:54:27.073Z"
+  }
+},
+{
+  "model": "projects.project",
+  "pk": 2,
+  "fields": {
+    "name": "阳光花园3号楼建设项目",
+    "description": "地上18层住宅楼，框架结构，总建筑面积约15000平方米",
+    "start_date": "2025-07-24",
+    "end_date": "2026-02-19",
+    "status": "active",
+    "created_at": "2025-08-23T14:54:27.053Z",
+    "updated_at": "2025-08-23T14:54:27.053Z"
+  }
+},
+{
+  "model": "projects.project",
+  "pk": 1,
+  "fields": {
+    "name": "project 1",
+    "description": "test test",
+    "start_date": "2025-08-28",
+    "end_date": "2025-09-02",
+    "status": "planning",
+    "created_at": "2025-08-23T14:51:47.910Z",
+    "updated_at": "2025-08-23T15:09:45.914Z"
+  }
+},
+{
+  "model": "drawings.drawing",
+  "pk": 9,
+  "fields": {
+    "project": 7,
+    "name": "螢幕擷取畫面 2024-05-20 121128.png",
+    "file": "drawings/螢幕擷取畫面_2024-05-20_121128_xOIr95I.png",
+    "file_size": 466691,
+    "page_count": 1,
+    "file_type": "",
+    "pdf_version": "",
+    "thumbnail": "",
+    "is_valid": true,
+    "uploaded_at": "2025-08-25T13:10:40.412Z",
+    "updated_at": "2025-08-25T13:10:40.412Z"
+  }
+},
+{
+  "model": "drawings.drawing",
+  "pk": 8,
+  "fields": {
+    "project": 7,
+    "name": "圖片_20240921104950.jpg",
+    "file": "drawings/圖片_20240921104950.jpg",
+    "file_size": 488830,
+    "page_count": 1,
+    "file_type": "",
+    "pdf_version": "",
+    "thumbnail": "",
+    "is_valid": true,
+    "uploaded_at": "2025-08-25T13:09:55.630Z",
+    "updated_at": "2025-08-25T13:09:55.630Z"
+  }
+},
+{
+  "model": "drawings.drawing",
+  "pk": 7,
+  "fields": {
+    "project": 6,
+    "name": "image (1).jpg",
+    "file": "drawings/image_1.jpg",
+    "file_size": 159570,
+    "page_count": 1,
+    "file_type": "",
+    "pdf_version": "",
+    "thumbnail": "",
+    "is_valid": true,
+    "uploaded_at": "2025-08-23T15:49:38.342Z",
+    "updated_at": "2025-08-23T15:49:38.342Z"
+  }
+},
+{
+  "model": "drawings.drawing",
+  "pk": 6,
+  "fields": {
+    "project": 6,
+    "name": "sef",
+    "file": "drawings/test_drawing_qjALttd.jpg",
+    "file_size": 23767,
+    "page_count": 1,
+    "file_type": "",
+    "pdf_version": "",
+    "thumbnail": "",
+    "is_valid": true,
+    "uploaded_at": "2025-08-23T15:26:30.200Z",
+    "updated_at": "2025-08-23T15:26:30.200Z"
+  }
+},
+{
+  "model": "drawings.drawing",
+  "pk": 5,
+  "fields": {
+    "project": 1,
+    "name": "Weng",
+    "file": "drawings/test_drawing_eLWto3a.jpg",
+    "file_size": 23767,
+    "page_count": 1,
+    "file_type": "",
+    "pdf_version": "",
+    "thumbnail": "",
+    "is_valid": true,
+    "uploaded_at": "2025-08-23T15:10:16.337Z",
+    "updated_at": "2025-08-23T15:10:16.337Z"
+  }
+},
+{
+  "model": "tasks.task",
+  "pk": 4,
+  "fields": {
+    "project": 6,
+    "name": "外立面检查",
+    "description": "检查外立面施工质量",
+    "task_type": "inspection",
+    "status": "pending",
+    "responsible_person": "陈监理",
+    "deadline": "2025-10-07",
+    "created_at": "2025-08-23T15:07:35.060Z",
+    "updated_at": "2025-08-23T15:07:35.060Z",
+    "drawings": []
+  }
+},
+{
+  "model": "tasks.task",
+  "pk": 3,
+  "fields": {
+    "project": 6,
+    "name": "2层结构施工",
+    "description": "2层楼板和梁柱施工",
+    "task_type": "new_construction",
+    "status": "pending",
+    "responsible_person": "王工",
+    "deadline": "2025-09-27",
+    "created_at": "2025-08-23T15:07:35.049Z",
+    "updated_at": "2025-08-23T15:07:35.049Z",
+    "drawings": [
+      7
+    ]
+  }
+},
+{
+  "model": "tasks.task",
+  "pk": 2,
+  "fields": {
+    "project": 6,
+    "name": "1层墙体砌筑",
+    "description": "按照图纸要求进行1层墙体砌筑",
+    "task_type": "new_construction",
+    "status": "pending",
+    "responsible_person": "李师傅",
+    "deadline": "2025-09-17",
+    "created_at": "2025-08-23T15:07:35.034Z",
+    "updated_at": "2025-08-23T15:07:35.034Z",
+    "drawings": []
+  }
+},
+{
+  "model": "tasks.task",
+  "pk": 1,
+  "fields": {
+    "project": 6,
+    "name": "基础施工",
+    "description": "进行建筑基础的挖掘和浇筑工作",
+    "task_type": "new_construction",
+    "status": "pending",
+    "responsible_person": "张工",
+    "deadline": "2025-09-07",
+    "created_at": "2025-08-23T15:07:35.016Z",
+    "updated_at": "2025-08-23T15:07:35.016Z",
+    "drawings": []
+  }
+},
+{
+  "model": "tasks.task",
+  "pk": 6,
+  "fields": {
+    "project": 6,
+    "name": "task 1 testing",
+    "description": "test",
+    "task_type": "new_construction",
+    "status": "pending",
+    "responsible_person": "aaaa",
+    "deadline": "2025-09-04",
+    "created_at": "2025-08-23T15:27:38.903Z",
+    "updated_at": "2025-08-23T15:45:55.872Z",
+    "drawings": [
+      7
+    ]
+  }
+},
+{
+  "model": "tasks.task",
+  "pk": 7,
+  "fields": {
+    "project": 7,
+    "name": "task np 1",
+    "description": "test",
+    "task_type": "new_construction",
+    "status": "pending",
+    "responsible_person": "abcd",
+    "deadline": "2025-09-02",
+    "created_at": "2025-08-25T13:11:33.043Z",
+    "updated_at": "2025-08-25T13:15:25.622Z",
+    "drawings": [
+      9
+    ]
+  }
+},
+{
+  "model": "tasks.task",
+  "pk": 8,
+  "fields": {
+    "project": 7,
+    "name": "twst 2",
+    "description": "222",
+    "task_type": "new_construction",
+    "status": "pending",
+    "responsible_person": "ffff",
+    "deadline": "2025-09-02",
+    "created_at": "2025-08-25T13:13:48.823Z",
+    "updated_at": "2025-08-25T13:14:32.037Z",
+    "drawings": [
+      8
+    ]
+  }
+},
+{
+  "model": "tasks.task",
+  "pk": 5,
+  "fields": {
+    "project": 1,
+    "name": "t1",
+    "description": "test",
+    "task_type": "new_construction",
+    "status": "pending",
+    "responsible_person": "aaa",
+    "deadline": "2025-08-29",
+    "created_at": "2025-08-23T15:15:21.416Z",
+    "updated_at": "2025-08-23T15:15:21.416Z",
+    "drawings": [
+      5
+    ]
+  }
+},
+{
+  "model": "tasks.task",
+  "pk": 9,
+  "fields": {
+    "project": 7,
+    "name": "456",
+    "description": "",
+    "task_type": "new_construction",
+    "status": "pending",
+    "responsible_person": "555",
+    "deadline": "2025-08-28",
+    "created_at": "2025-08-25T14:06:25.002Z",
+    "updated_at": "2025-08-25T14:21:33.104Z",
+    "drawings": [
+      8
+    ]
+  }
+},
+{
+  "model": "tasks.taskannotation",
+  "pk": 1,
+  "fields": {
+    "task": 6,
+    "drawing": 6,
+    "annotation_type": "line",
+    "page_number": 1,
+    "x_coordinate": 220.0,
+    "y_coordinate": 135.421875,
+    "width": null,
+    "height": null,
+    "end_x": 342.0,
+    "end_y": 248.421875,
+    "color": "red",
+    "content": "333",
+    "created_at": "2025-08-23T15:42:45.565Z"
+  }
+},
+{
+  "model": "tasks.taskannotation",
+  "pk": 2,
+  "fields": {
+    "task": 6,
+    "drawing": 6,
+    "annotation_type": "point",
+    "page_number": 1,
+    "x_coordinate": 499.0,
+    "y_coordinate": 181.421875,
+    "width": null,
+    "height": null,
+    "end_x": null,
+    "end_y": null,
+    "color": "orange",
+    "content": "adada",
+    "created_at": "2025-08-23T15:45:42.517Z"
+  }
+},
+{
+  "model": "tasks.taskannotation",
+  "pk": 3,
+  "fields": {
+    "task": 6,
+    "drawing": 6,
+    "annotation_type": "text",
+    "page_number": 1,
+    "x_coordinate": 124.0,
+    "y_coordinate": 188.421875,
+    "width": null,
+    "height": null,
+    "end_x": null,
+    "end_y": null,
+    "color": "purple",
+    "content": "sedfafweasf",
+    "created_at": "2025-08-23T15:45:51.675Z"
+  }
+},
+{
+  "model": "tasks.taskannotation",
+  "pk": 4,
+  "fields": {
+    "task": 3,
+    "drawing": 7,
+    "annotation_type": "point",
+    "page_number": 1,
+    "x_coordinate": 100.0,
+    "y_coordinate": 150.0,
+    "width": null,
+    "height": null,
+    "end_x": null,
+    "end_y": null,
+    "color": "red",
+    "content": "测试红色点标记",
+    "created_at": "2025-08-23T15:56:14.554Z"
+  }
+},
+{
+  "model": "tasks.taskannotation",
+  "pk": 5,
+  "fields": {
+    "task": 7,
+    "drawing": 9,
+    "annotation_type": "point",
+    "page_number": 1,
+    "x_coordinate": 196.0,
+    "y_coordinate": 148.421875,
+    "width": null,
+    "height": null,
+    "end_x": null,
+    "end_y": null,
+    "color": "black",
+    "content": "ssssss",
+    "created_at": "2025-08-25T13:11:44.954Z"
+  }
+},
+{
+  "model": "tasks.taskannotation",
+  "pk": 6,
+  "fields": {
+    "task": 7,
+    "drawing": 9,
+    "annotation_type": "text",
+    "page_number": 1,
+    "x_coordinate": 149.0,
+    "y_coordinate": 71.0,
+    "width": null,
+    "height": null,
+    "end_x": null,
+    "end_y": null,
+    "color": "orange",
+    "content": "fffeef",
+    "created_at": "2025-08-25T13:11:55.446Z"
+  }
+},
+{
+  "model": "tasks.taskannotation",
+  "pk": 7,
+  "fields": {
+    "task": 8,
+    "drawing": 8,
+    "annotation_type": "line",
+    "page_number": 1,
+    "x_coordinate": 151.0,
+    "y_coordinate": 104.421875,
+    "width": null,
+    "height": null,
+    "end_x": 104.0,
+    "end_y": 257.421875,
+    "color": "red",
+    "content": "sefsefse",
+    "created_at": "2025-08-25T13:14:04.005Z"
+  }
+},
+{
+  "model": "tasks.taskannotation",
+  "pk": 8,
+  "fields": {
+    "task": 8,
+    "drawing": 8,
+    "annotation_type": "point",
+    "page_number": 1,
+    "x_coordinate": 100.0,
+    "y_coordinate": 100.0,
+    "width": null,
+    "height": null,
+    "end_x": null,
+    "end_y": null,
+    "color": "blue",
+    "content": "蓝色检查点",
+    "created_at": "2025-08-25T13:52:04.859Z"
+  }
+},
+{
+  "model": "tasks.taskannotation",
+  "pk": 9,
+  "fields": {
+    "task": 8,
+    "drawing": 8,
+    "annotation_type": "text",
+    "page_number": 1,
+    "x_coordinate": 250.0,
+    "y_coordinate": 200.0,
+    "width": null,
+    "height": null,
+    "end_x": null,
+    "end_y": null,
+    "color": "green",
+    "content": "绿色文字标注",
+    "created_at": "2025-08-25T13:52:04.868Z"
+  }
+},
+{
+  "model": "tasks.taskannotation",
+  "pk": 10,
+  "fields": {
+    "task": 8,
+    "drawing": 8,
+    "annotation_type": "line",
+    "page_number": 1,
+    "x_coordinate": 50.0,
+    "y_coordinate": 300.0,
+    "width": null,
+    "height": null,
+    "end_x": 200.0,
+    "end_y": 350.0,
+    "color": "purple",
+    "content": "紫色线条标注",
+    "created_at": "2025-08-25T13:52:04.874Z"
+  }
+},
+{
+  "model": "tasks.taskannotation",
+  "pk": 11,
+  "fields": {
+    "task": 9,
+    "drawing": 8,
+    "annotation_type": "text",
+    "page_number": 1,
+    "x_coordinate": 129.0,
+    "y_coordinate": 82.421875,
+    "width": null,
+    "height": null,
+    "end_x": null,
+    "end_y": null,
+    "color": "red",
+    "content": "6545645656",
+    "created_at": "2025-08-25T14:06:37.607Z"
+  }
+},
+{
+  "model": "tasks.taskannotation",
+  "pk": 12,
+  "fields": {
+    "task": 9,
+    "drawing": 8,
+    "annotation_type": "text",
+    "page_number": 1,
+    "x_coordinate": 116.0,
+    "y_coordinate": 214.421875,
+    "width": null,
+    "height": null,
+    "end_x": null,
+    "end_y": null,
+    "color": "yellow",
+    "content": "666",
+    "created_at": "2025-08-25T14:06:46.082Z"
+  }
+}
+]

@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+
+{% block title %}创建任务 - 建筑项目管理系统{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-plus"></i> 创建任务
+                </h4>
+                
+                <!-- 步骤指示器 -->
+                <div class="mt-3">
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar" role="progressbar" style="width: 50%"></div>
+                    </div>
+                    <div class="d-flex justify-content-between mt-2">
+                        <small class="text-primary"><strong>1. 填写任务信息</strong></small>
+                        <small class="text-muted">2. 关联图纸</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                <form method="post" id="task-form">
+                    {% csrf_token %}
+                    
+                    <!-- 任务名称 -->
+                    <div class="mb-3">
+                        <label for="{{ form.name.id_for_label }}" class="form-label">
+                            {{ form.name.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.name.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- 任务类型 -->
+                    <div class="mb-3">
+                        <label for="{{ form.task_type.id_for_label }}" class="form-label">
+                            {{ form.task_type.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.task_type }}
+                        {% if form.task_type.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.task_type.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- 负责人 -->
+                    <div class="mb-3">
+                        <label for="{{ form.responsible_person.id_for_label }}" class="form-label">
+                            {{ form.responsible_person.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.responsible_person }}
+                        {% if form.responsible_person.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.responsible_person.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- 截止时间 -->
+                    <div class="mb-3">
+                        <label for="{{ form.deadline.id_for_label }}" class="form-label">
+                            {{ form.deadline.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.deadline }}
+                        <div class="form-text">不可选择过去的日期</div>
+                        {% if form.deadline.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.deadline.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- 按钮 -->
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'tasks:task_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> 返回列表
+                        </a>
+                        <button type="submit" class="btn btn-primary" id="next-btn">
+                            下一步 <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('task-form');
+    const nextBtn = document.getElementById('next-btn');
+    const requiredFields = form.querySelectorAll('input[required], select[required]');
+    
+    // 检查表单完整性
+    function checkFormValidity() {
+        let allFilled = true;
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                allFilled = false;
+            }
+        });
+        
+        nextBtn.disabled = !allFilled;
+        if (allFilled) {
+            nextBtn.classList.remove('btn-secondary');
+            nextBtn.classList.add('btn-primary');
+        } else {
+            nextBtn.classList.remove('btn-primary');
+            nextBtn.classList.add('btn-secondary');
+        }
+    }
+    
+    // 监听输入变化
+    requiredFields.forEach(field => {
+        field.addEventListener('input', checkFormValidity);
+        field.addEventListener('change', checkFormValidity);
+    });
+    
+    // 初始检查
+    checkFormValidity();
+    
+    // 表单提交验证
+    form.addEventListener('submit', function(e) {
+        let hasError = false;
+        
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                hasError = true;
+                field.classList.add('is-invalid');
+            } else {
+                field.classList.remove('is-invalid');
+            }
+        });
+        
+        if (hasError) {
+            e.preventDefault();
+            alert('请先完成所有必填项');
+        }
+    });
+});
+</script>
+{% endblock %}

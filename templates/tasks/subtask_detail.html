@@ -1,0 +1,333 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ task.name }} - 子任务详情{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="row">
+    <div class="col-md-8">
+        <!-- 子任务基本信息 -->
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-list-ul"></i> {{ task.name }}
+                    <span class="badge bg-info ms-2">子任务</span>
+                    <span class="badge bg-secondary ms-1">{{ task.get_task_type_display }}</span>
+                </h4>
+            </div>
+            <div class="card-body">
+                <!-- 父任务信息 -->
+                <div class="alert alert-info">
+                    <i class="fas fa-level-up-alt"></i>
+                    <strong>父任务：</strong>
+                    <a href="{% url 'tasks:task_detail' parent_task.pk %}" class="text-decoration-none">
+                        {{ parent_task.name }}
+                    </a>
+                </div>
+
+                <dl class="row">
+                    <dt class="col-sm-3">子任务名称：</dt>
+                    <dd class="col-sm-9">{{ task.name }}</dd>
+
+                    <dt class="col-sm-3">任务类型：</dt>
+                    <dd class="col-sm-9">
+                        <span class="badge bg-secondary">{{ task.get_task_type_display }}</span>
+                    </dd>
+
+                    <dt class="col-sm-3">负责人：</dt>
+                    <dd class="col-sm-9">{{ task.responsible_person }}</dd>
+
+                    <dt class="col-sm-3">任务状态：</dt>
+                    <dd class="col-sm-9">
+                        <span class="badge bg-{% if task.status == 'completed' %}success{% elif task.status == 'in_progress' %}warning{% elif task.status == 'pending' %}info{% else %}secondary{% endif %}">
+                            {{ task.get_status_display }}
+                        </span>
+                    </dd>
+
+                    <dt class="col-sm-3">开始日期：</dt>
+                    <dd class="col-sm-9">{{ task.start_date|date:"Y年m月d日" }}</dd>
+
+                    <dt class="col-sm-3">结束日期：</dt>
+                    <dd class="col-sm-9">{{ task.end_date|date:"Y年m月d日" }}</dd>
+
+                    <dt class="col-sm-3">截止时间：</dt>
+                    <dd class="col-sm-9">
+                        {{ task.deadline|date:"Y年m月d日" }}
+                        {% if task.deadline < today %}
+                            <span class="badge bg-danger ms-2">已逾期</span>
+                        {% elif task.deadline == today %}
+                            <span class="badge bg-warning ms-2">今日截止</span>
+                        {% endif %}
+                    </dd>
+
+                    <dt class="col-sm-3">工期：</dt>
+                    <dd class="col-sm-9">{{ task.duration_days }} 天</dd>
+
+                    {% if task.description %}
+                    <dt class="col-sm-3">任务描述：</dt>
+                    <dd class="col-sm-9">{{ task.description|linebreaks }}</dd>
+                    {% endif %}
+
+                    <dt class="col-sm-3">创建时间：</dt>
+                    <dd class="col-sm-9">{{ task.created_at|date:"Y-m-d H:i:s" }}</dd>
+
+                    <dt class="col-sm-3">更新时间：</dt>
+                    <dd class="col-sm-9">{{ task.updated_at|date:"Y-m-d H:i:s" }}</dd>
+                </dl>
+            </div>
+        </div>
+
+        <!-- 任务进度 -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line"></i> 任务进度
+                </h5>
+            </div>
+            <div class="card-body">
+                {% with progress=task.get_progress_percentage %}
+                <div class="d-flex align-items-center mb-3">
+                    <div class="flex-grow-1">
+                        <div class="progress" style="height: 25px;">
+                            <div class="progress-bar
+                                {% if progress == 100 %}bg-success
+                                {% elif progress >= 75 %}bg-info
+                                {% elif progress >= 50 %}bg-warning
+                                {% else %}bg-danger
+                                {% endif %}"
+                                role="progressbar"
+                                style="width: {{ progress }}%"
+                                aria-valuenow="{{ progress }}"
+                                aria-valuemin="0"
+                                aria-valuemax="100">
+                                <span class="fw-bold">{{ progress }}%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endwith %}
+
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <div class="border rounded p-2">
+                            <div class="h5 mb-1 text-{% if task.status == 'completed' %}success{% elif task.status == 'in_progress' %}warning{% elif task.status == 'pending' %}info{% else %}secondary{% endif %}">
+                                <i class="fas fa-tasks"></i>
+                            </div>
+                            <small class="text-muted">当前状态</small>
+                            <div class="fw-bold">{{ task.get_status_display }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border rounded p-2">
+                            <div class="h5 mb-1 text-primary">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <small class="text-muted">工期</small>
+                            <div class="fw-bold">{{ task.duration_days }} 天</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border rounded p-2">
+                            <div class="h5 mb-1 text-info">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <small class="text-muted">负责人</small>
+                            <div class="fw-bold">{{ task.responsible_person }}</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="border rounded p-2">
+                            <div class="h5 mb-1 text-{% if task.deadline < today %}danger{% elif task.deadline == today %}warning{% else %}success{% endif %}">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <small class="text-muted">截止时间</small>
+                            <div class="fw-bold">{{ task.deadline|date:"m/d" }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 右侧操作面板 -->
+    <div class="col-md-4">
+        <!-- 快速操作 -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-cogs"></i> 快速操作
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'tasks:task_update' task.pk %}" class="btn btn-primary">
+                        <i class="fas fa-edit"></i> 编辑子任务
+                    </a>
+                    <a href="{% url 'tasks:task_detail' parent_task.pk %}" class="btn btn-info">
+                        <i class="fas fa-level-up-alt"></i> 查看父任务
+                    </a>
+                    <a href="{% url 'projects:worksite_detail' worksite.pk %}" class="btn btn-success">
+                        <i class="fas fa-building"></i> 查看工地
+                    </a>
+                    <a href="{% url 'projects:project_detail' worksite.project.pk %}" class="btn btn-outline-primary">
+                        <i class="fas fa-project-diagram"></i> 查看项目
+                    </a>
+                </div>
+
+                <hr>
+
+                <!-- 状态更新 -->
+                <div class="mb-3">
+                    <label for="statusSelect" class="form-label">更新状态</label>
+                    <select class="form-select" id="statusSelect">
+                        <option value="open" {% if task.status == 'open' %}selected{% endif %}>开放</option>
+                        <option value="in_progress" {% if task.status == 'in_progress' %}selected{% endif %}>进行中</option>
+                        <option value="pending" {% if task.status == 'pending' %}selected{% endif %}>待处理</option>
+                        <option value="completed" {% if task.status == 'completed' %}selected{% endif %}>已完成</option>
+                    </select>
+                </div>
+                <button type="button" class="btn btn-warning w-100" id="updateStatusBtn">
+                    <i class="fas fa-sync-alt"></i> 更新状态
+                </button>
+            </div>
+        </div>
+
+        <!-- 工地信息 -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-building"></i> 工地信息
+                </h5>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-4">工地名称：</dt>
+                    <dd class="col-sm-8">
+                        <a href="{% url 'projects:worksite_detail' worksite.pk %}" class="text-decoration-none">
+                            {{ worksite.name }}
+                        </a>
+                    </dd>
+
+                    <dt class="col-sm-4">工地状态：</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge bg-{% if worksite.status == 'completed' %}success{% elif worksite.status == 'active' %}warning{% else %}secondary{% endif %}">
+                            {{ worksite.get_status_display }}
+                        </span>
+                    </dd>
+
+                    <dt class="col-sm-4">项目：</dt>
+                    <dd class="col-sm-8">
+                        <a href="{% url 'projects:project_detail' worksite.project.pk %}" class="text-decoration-none">
+                            {{ worksite.project.name }}
+                        </a>
+                    </dd>
+                </dl>
+            </div>
+        </div>
+
+        <!-- 父任务信息 -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-tasks"></i> 父任务信息
+                </h5>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-4">任务名称：</dt>
+                    <dd class="col-sm-8">
+                        <a href="{% url 'tasks:task_detail' parent_task.pk %}" class="text-decoration-none">
+                            {{ parent_task.name }}
+                        </a>
+                    </dd>
+
+                    <dt class="col-sm-4">任务状态：</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge bg-{% if parent_task.status == 'completed' %}success{% elif parent_task.status == 'in_progress' %}warning{% elif parent_task.status == 'pending' %}info{% else %}secondary{% endif %}">
+                            {{ parent_task.get_status_display }}
+                        </span>
+                    </dd>
+
+                    <dt class="col-sm-4">负责人：</dt>
+                    <dd class="col-sm-8">{{ parent_task.responsible_person }}</dd>
+
+                    <dt class="col-sm-4">截止时间：</dt>
+                    <dd class="col-sm-8">{{ parent_task.deadline|date:"Y-m-d" }}</dd>
+
+                    <dt class="col-sm-4">子任务数：</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge bg-info">{{ parent_task.get_subtasks_count }}</span>
+                        {% if parent_task.get_subtasks_count > 0 %}
+                        <small class="text-muted ms-1">
+                            ({{ parent_task.get_completed_subtasks_count }}/{{ parent_task.get_subtasks_count }} 完成)
+                        </small>
+                        {% endif %}
+                    </dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 状态更新功能
+    const updateStatusBtn = document.getElementById('updateStatusBtn');
+    const statusSelect = document.getElementById('statusSelect');
+
+    if (updateStatusBtn && statusSelect) {
+        updateStatusBtn.addEventListener('click', function() {
+            const newStatus = statusSelect.value;
+            const originalStatus = '{{ task.status }}';
+
+            if (newStatus === originalStatus) {
+                alert('状态没有变化');
+                return;
+            }
+
+            if (confirm(`确定要将子任务状态更改为"${getStatusDisplayText(newStatus)}"吗？`)) {
+                fetch(`/tasks/subtask/{{ task.id }}/update-status/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify({ status: newStatus })
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        // 刷新页面以显示更新后的状态
+                        location.reload();
+                    } else {
+                        alert('状态更新失败: ' + (result.error || '未知错误'));
+                        // 恢复原始状态
+                        statusSelect.value = originalStatus;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('状态更新失败: 网络错误');
+                    statusSelect.value = originalStatus;
+                });
+            } else {
+                // 用户取消，恢复原始状态
+                statusSelect.value = originalStatus;
+            }
+        });
+    }
+});
+
+// 获取状态显示文本
+function getStatusDisplayText(status) {
+    const statusMap = {
+        'open': '开放',
+        'in_progress': '进行中',
+        'pending': '待处理',
+        'completed': '已完成'
+    };
+    return statusMap[status] || status;
+}
+</script>
+{% endblock %}

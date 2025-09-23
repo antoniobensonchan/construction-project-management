@@ -1,0 +1,1436 @@
+{% extends 'base.html' %}
+
+{% block title %}创建任务 - 关联图纸{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-plus"></i> 创建任务
+                </h4>
+
+                <!-- 步骤指示器 -->
+                <div class="mt-3">
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar" role="progressbar" style="width: 100%"></div>
+                    </div>
+                    <div class="d-flex justify-content-between mt-2">
+                        <small class="text-success"><i class="fas fa-check"></i> 1. 填写任务信息</small>
+                        <small class="text-primary"><strong>2. 关联图纸</strong></small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body">
+                <!-- 任务信息预览 -->
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle"></i> 任务信息预览</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>任务名称：</strong>{{ task_data.name }}<br>
+                            <strong>任务类型：</strong>
+                            {% if task_data.task_type == 'new_construction' %}新建施工
+                            {% elif task_data.task_type == 'repair' %}整改修复
+                            {% elif task_data.task_type == 'inspection' %}检查验收
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>负责人：</strong>{{ task_data.responsible_person }}<br>
+                            <strong>截止时间：</strong>{{ task_data.deadline }}
+                        </div>
+                    </div>
+                </div>
+
+                <form method="post" id="drawing-select-form">
+                    {% csrf_token %}
+
+                    <h5 class="mb-3">选择关联图纸</h5>
+
+                    {% if form.drawing.field.queryset %}
+                        <div class="row">
+                            {% for drawing in form.drawing.field.queryset %}
+                                <div class="col-md-6 col-lg-4 mb-3">
+                                    <div class="card drawing-option" data-drawing-id="{{ drawing.id }}">
+                                        <div class="card-body">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="drawing" value="{{ drawing.id }}" id="drawing_{{ drawing.id }}"
+                                                       {% if form.drawing.value == drawing.id %}checked{% endif %}>
+                                                <label class="form-check-label w-100" for="drawing_{{ drawing.id }}">
+                                                    <div class="d-flex align-items-start">
+                                                        <i class="fas fa-file-pdf text-danger me-2 mt-1"></i>
+                                                        <div class="flex-grow-1">
+                                                            <h6 class="mb-1">{{ drawing.name }}</h6>
+                                                            <small class="text-muted">
+                                                                <i class="fas fa-calendar"></i>
+                                                                上传：{{ drawing.uploaded_at|date:"Y-m-d H:i" }}<br>
+                                                                <i class="fas fa-weight-hanging"></i>
+                                                                大小：{{ drawing.file_size_mb }} MB
+                                                            </small>
+                                                        </div>
+                                                    </div>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+
+                        {% if form.drawing.errors %}
+                            <div class="text-danger small mt-2">
+                                {% for error in form.drawing.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <!-- PDF实时预览区域 -->
+                        <div id="pdf-preview-section" style="display: none;" class="mt-4">
+                            <h5 class="mb-3">
+                                <i class="fas fa-eye"></i> 图纸预览
+                                <small class="text-muted ms-2" id="preview-drawing-name"></small>
+                            </h5>
+
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <span>图纸预览</span>
+                                    <div class="d-flex gap-2">
+                                        <!-- 在新窗口打开PDF -->
+                                        <button class="btn btn-sm btn-outline-info" id="open-pdf-new-window">
+                                            <i class="fas fa-external-link-alt"></i> 新窗口打开
+                                        </button>
+                                        <!-- 测试标注按钮 -->
+                                        <button class="btn btn-sm btn-outline-warning" id="test-annotation">
+                                            <i class="fas fa-bug"></i> 测试标注
+                                        </button>
+                                        <!-- 直接工具选择按钮 -->
+                                        <button type="button" class="btn btn-sm btn-success" onclick="event.preventDefault(); window.selectTool('point');">
+                                            <i class="fas fa-circle"></i> 点标记
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-info" onclick="event.preventDefault(); window.selectTool('line');">
+                                            <i class="fas fa-minus"></i> 线条标注
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-success" onclick="event.preventDefault(); window.selectTool('text');">
+                                            <i class="fas fa-font"></i> 文字标注
+                                        </button>
+                                        <!-- 测试保存按钮 -->
+                                        <button type="button" class="btn btn-sm btn-warning" onclick="testSaveAnnotations()">
+                                            <i class="fas fa-save"></i> 测试保存
+                                        </button>
+                                        <!-- 标注工具下拉菜单 -->
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" id="annotation-tools" data-bs-toggle="dropdown" title="打开标注工具">
+                                                <i class="fas fa-paint-brush"></i> 标注工具
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li>
+                                                    <a class="dropdown-item annotation-tool" href="#" data-tool="point">
+                                                        <i class="fas fa-circle text-danger"></i> 点标记
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item annotation-tool" href="#" data-tool="line">
+                                                        <i class="fas fa-minus text-info"></i> 线条标注
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item annotation-tool" href="#" data-tool="text">
+                                                        <i class="fas fa-font text-success"></i> 文字标注
+                                                    </a>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <h6 class="dropdown-header">颜色选择</h6>
+                                                </li>
+                                                <li>
+                                                    <div class="px-3 py-2">
+                                                        <select class="form-select form-select-sm" id="annotation-color">
+                                                            <option value="red">红色</option>
+                                                            <option value="blue">蓝色</option>
+                                                            <option value="green">绿色</option>
+                                                            <option value="yellow">黄色</option>
+                                                            <option value="orange">橙色</option>
+                                                            <option value="purple">紫色</option>
+                                                            <option value="black">黑色</option>
+                                                        </select>
+                                                    </div>
+                                                </li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li>
+                                                    <a class="dropdown-item" href="#" id="show-annotation-list">
+                                                        <i class="fas fa-list"></i> 标注列表
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card-body p-0">
+                                    <div id="pdf-preview-container" style="height: 400px; position: relative; background: #f8f9fa;">
+                                        <!-- 简化的PDF预览 - 使用object标签 -->
+                                        <div id="pdf-preview-loading" class="text-center py-5">
+                                            <div class="spinner-border text-primary" role="status">
+                                                <span class="visually-hidden">加载中...</span>
+                                            </div>
+                                            <p class="mt-2">正在加载图纸预览...</p>
+                                        </div>
+
+                                        <!-- 文件显示区域 -->
+                                        <div id="file-display-area" style="position: relative; width: 100%; height: 100%; display: none;">
+                                            <!-- PDF显示 -->
+                                            <object id="pdf-object"
+                                                    type="application/pdf"
+                                                    width="100%"
+                                                    height="100%"
+                                                    style="position: absolute; top: 0; left: 0; z-index: 1; display: none;">
+                                                <p>您的浏览器不支持PDF预览。<a id="pdf-download-link" href="#" target="_blank">点击下载PDF文件</a></p>
+                                            </object>
+
+                                            <!-- 图片显示 -->
+                                            <img id="image-viewer"
+                                                 style="position: absolute; top: 0; left: 0; z-index: 1; max-width: 100%; max-height: 100%; object-fit: contain; display: none;"
+                                                 alt="图纸预览">
+
+                                            <!-- 标注层 - 使用DIV而不是Canvas -->
+                                            <div id="annotation-overlay"
+                                                 style="position: absolute; top: 0; left: 0; width: 100%; height: 400px; z-index: 5; pointer-events: auto; cursor: crosshair;">
+                                                <!-- 标注元素将在这里动态添加 -->
+                                            </div>
+                                        </div>
+
+                                        <div id="pdf-preview-error" class="text-center py-5" style="display: none;">
+                                            <i class="fas fa-exclamation-triangle fa-2x text-warning mb-3"></i>
+                                            <h6>图纸预览加载失败</h6>
+                                            <p class="text-muted small">
+                                                <a id="fallback-pdf-link" href="#" target="_blank" class="btn btn-primary">
+                                                    <i class="fas fa-external-link-alt"></i> 在新窗口中打开PDF
+                                                </a>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 页码导航 -->
+                                <div class="card-footer bg-light" id="pdf-preview-navigation" style="display: none;">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <button class="btn btn-sm btn-outline-secondary" id="preview-prev-page" disabled>
+                                            <i class="fas fa-chevron-left"></i> 上一页
+                                        </button>
+
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span>第</span>
+                                            <select class="form-select form-select-sm" id="preview-page-select" style="width: auto;">
+                                            </select>
+                                            <span>页，共 <span id="preview-total-pages">1</span> 页</span>
+                                        </div>
+
+                                        <button class="btn btn-sm btn-outline-secondary" id="preview-next-page">
+                                            下一页 <i class="fas fa-chevron-right"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 标注列表侧边栏 -->
+                        <div id="annotation-sidebar" class="mt-3" style="display: none;">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-list"></i> 标注列表
+                                        <span class="badge bg-primary ms-2" id="annotation-count">0</span>
+                                    </h6>
+                                    <button class="btn btn-sm btn-outline-danger" id="clear-all-annotations">
+                                        <i class="fas fa-trash"></i> 清空所有
+                                    </button>
+                                </div>
+                                <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                                    <div id="annotation-list">
+                                        <p class="text-muted text-center mb-0">暂无标注</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-file-pdf fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">暂无可用图纸</h5>
+                            <p class="text-muted">请先上传PDF图纸</p>
+                            <a href="{% url 'drawings:drawing_upload' %}" class="btn btn-orange">
+                                <i class="fas fa-upload"></i> 去上传图纸
+                            </a>
+                        </div>
+                    {% endif %}
+
+                    <!-- 按钮 -->
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'tasks:task_create' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> 上一步
+                        </a>
+                        {% if form.drawing.field.queryset %}
+                            <button type="submit" class="btn btn-primary" id="complete-btn" disabled>
+                                <i class="fas fa-check"></i> 完成创建
+                            </button>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 全局变量和函数定义
+let currentTool = 'none';
+let currentColor = 'red';
+let annotations = [];
+let annotationCounter = 0;
+const maxAnnotations = 10;
+let isDrawingLine = false;
+let lineStartX = 0;
+let lineStartY = 0;
+
+// 全局工具选择函数
+window.selectTool = function(toolType) {
+    console.log('Global selectTool called:', toolType);
+    currentTool = toolType;
+
+    // 获取当前选择的颜色
+    const colorSelect = document.getElementById('annotation-color');
+    if (colorSelect) {
+        currentColor = colorSelect.value;
+    }
+
+    const overlay = document.getElementById('annotation-overlay');
+    if (overlay) {
+        switch(toolType) {
+            case 'point':
+                overlay.style.cursor = 'crosshair';
+                break;
+            case 'line':
+                overlay.style.cursor = 'crosshair';
+                break;
+            case 'text':
+                overlay.style.cursor = 'text';
+                break;
+            default:
+                overlay.style.cursor = 'default';
+        }
+        overlay.style.pointerEvents = 'auto';
+        overlay.style.zIndex = '10';
+    }
+
+    let toolName = '';
+    switch(toolType) {
+        case 'point': toolName = '点标记'; break;
+        case 'line': toolName = '线条标注'; break;
+        case 'text': toolName = '文字标注'; break;
+    }
+
+    alert(`已选择${toolName}工具（${currentColor}色），现在点击图片进行标注`);
+    console.log('Tool selected:', toolType, 'Color:', currentColor);
+};
+
+// 全局保存标注函数
+window.saveAnnotationsToServer = function() {
+    console.log('Preparing to save annotations:', annotations);
+
+    // 转换标注数据格式
+    const annotationsData = annotations.map(annotation => {
+        const data = {
+            type: annotation.type,
+            x: annotation.x,
+            y: annotation.y,
+            page: annotation.page || 1
+        };
+
+        if (annotation.type === 'point') {
+            data.note = annotation.note || '';
+        } else if (annotation.type === 'text') {
+            data.text = annotation.text || '';
+        } else if (annotation.type === 'rectangle') {
+            data.width = annotation.width || 0;
+            data.height = annotation.height || 0;
+            data.note = annotation.note || '';
+        }
+
+        return data;
+    });
+
+    console.log('Formatted annotations data:', annotationsData);
+
+    return fetch('/tasks/save-annotations/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            annotations: annotationsData
+        })
+    }).then(response => {
+        console.log('Server response status:', response.status);
+        return response.json();
+    }).then(data => {
+        console.log('Server response data:', data);
+        return data;
+    });
+};
+
+// 测试保存标注函数
+window.testSaveAnnotations = function() {
+    console.log('=== Test Save Annotations ===');
+    console.log('Current annotations:', annotations);
+    console.log('Annotations count:', annotations.length);
+
+    if (annotations.length === 0) {
+        alert('没有标注数据可保存！请先添加一些标注。');
+        return;
+    }
+
+    window.saveAnnotationsToServer().then((response) => {
+        console.log('Test save successful:', response);
+        alert(`测试保存成功！保存了${annotations.length}个标注`);
+    }).catch(error => {
+        console.error('Test save failed:', error);
+        alert('测试保存失败：' + error.message);
+    });
+};
+
+// 全局标注创建函数
+window.createPointAnnotation = function(x, y) {
+    const note = prompt('请输入备注（最多30字）：', '');
+    if (note === null) return;
+
+    if (note.length > 30) {
+        alert('备注内容不能超过30字');
+        return;
+    }
+
+    const annotation = {
+        id: ++annotationCounter,
+        type: 'point',
+        x: x,
+        y: y,
+        note: note,
+        color: currentColor,
+        page: 1
+    };
+
+    annotations.push(annotation);
+    renderAnnotation(annotation);
+    console.log('Point annotation created:', annotation);
+};
+
+window.createLineAnnotation = function(startX, startY, endX, endY) {
+    const note = prompt('请输入线条说明（最多30字）：', '');
+    if (note === null) return;
+
+    if (note.length > 30) {
+        alert('说明内容不能超过30字');
+        return;
+    }
+
+    const annotation = {
+        id: ++annotationCounter,
+        type: 'line',
+        x: startX,
+        y: startY,
+        endX: endX,
+        endY: endY,
+        note: note,
+        color: currentColor,
+        page: 1
+    };
+
+    annotations.push(annotation);
+    renderAnnotation(annotation);
+    console.log('Line annotation created:', annotation);
+};
+
+window.createTextAnnotation = function(x, y) {
+    const text = prompt('请输入文字标注：', '');
+    if (text === null || text.trim() === '') return;
+
+    const annotation = {
+        id: ++annotationCounter,
+        type: 'text',
+        x: x,
+        y: y,
+        text: text.trim(),
+        color: currentColor,
+        page: 1
+    };
+
+    annotations.push(annotation);
+    renderAnnotation(annotation);
+    console.log('Text annotation created:', annotation);
+};
+
+// 渲染单个标注
+function renderAnnotation(annotation) {
+    const overlay = document.getElementById('annotation-overlay');
+    if (!overlay) return;
+
+    const element = document.createElement('div');
+    element.className = 'annotation-marker';
+    element.dataset.annotationId = annotation.id;
+
+    const color = annotation.color || 'red';
+
+    if (annotation.type === 'point') {
+        element.style.cssText = `
+            position: absolute;
+            left: ${annotation.x - 6}px;
+            top: ${annotation.y - 6}px;
+            width: 12px;
+            height: 12px;
+            background-color: ${color};
+            border: 2px solid ${getDarkerColor(color)};
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 10;
+        `;
+        element.title = annotation.note;
+    } else if (annotation.type === 'line') {
+        // 创建SVG线条
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+
+        const minX = Math.min(annotation.x, annotation.endX);
+        const minY = Math.min(annotation.y, annotation.endY);
+        const width = Math.abs(annotation.endX - annotation.x) + 10;
+        const height = Math.abs(annotation.endY - annotation.y) + 10;
+
+        svg.style.cssText = `
+            position: absolute;
+            left: ${minX - 5}px;
+            top: ${minY - 5}px;
+            width: ${width}px;
+            height: ${height}px;
+            cursor: pointer;
+            z-index: 10;
+        `;
+
+        line.setAttribute('x1', annotation.x - minX + 5);
+        line.setAttribute('y1', annotation.y - minY + 5);
+        line.setAttribute('x2', annotation.endX - minX + 5);
+        line.setAttribute('y2', annotation.endY - minY + 5);
+        line.setAttribute('stroke', color);
+        line.setAttribute('stroke-width', '3');
+
+        svg.appendChild(line);
+        element.appendChild(svg);
+        element.title = annotation.note;
+    } else if (annotation.type === 'text') {
+        element.style.cssText = `
+            position: absolute;
+            left: ${annotation.x}px;
+            top: ${annotation.y - 16}px;
+            background: rgba(255,255,255,0.9);
+            color: ${color};
+            font-weight: bold;
+            font-size: 12px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            border: 1px solid ${color};
+            cursor: pointer;
+            z-index: 10;
+            max-width: 150px;
+            word-wrap: break-word;
+        `;
+        element.textContent = annotation.text;
+    }
+
+    overlay.appendChild(element);
+}
+
+// 获取更深的颜色
+function getDarkerColor(color) {
+    const colorMap = {
+        'red': 'darkred',
+        'blue': 'darkblue',
+        'green': 'darkgreen',
+        'yellow': 'orange',
+        'orange': 'darkorange',
+        'purple': 'darkviolet',
+        'black': 'black'
+    };
+    return colorMap[color] || 'black';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('drawing-select-form');
+    const completeBtn = document.getElementById('complete-btn');
+    const drawingOptions = document.querySelectorAll('.drawing-option');
+    const radioButtons = document.querySelectorAll('input[name="drawing"]');
+
+    // PDF预览相关元素
+    const previewSection = document.getElementById('pdf-preview-section');
+    const previewLoading = document.getElementById('pdf-preview-loading');
+    const previewError = document.getElementById('pdf-preview-error');
+    const previewName = document.getElementById('preview-drawing-name');
+    const previewNavigation = document.getElementById('pdf-preview-navigation');
+    const previewPrevBtn = document.getElementById('preview-prev-page');
+    const previewNextBtn = document.getElementById('preview-next-page');
+    const previewPageSelect = document.getElementById('preview-page-select');
+    const previewTotalPages = document.getElementById('preview-total-pages');
+    const fileDisplayArea = document.getElementById('file-display-area');
+    const pdfObject = document.getElementById('pdf-object');
+    const imageViewer = document.getElementById('image-viewer');
+    const annotationOverlay = document.getElementById('annotation-overlay');
+    const openPdfBtn = document.getElementById('open-pdf-new-window');
+    const testAnnotationBtn = document.getElementById('test-annotation');
+    const pdfDownloadLink = document.getElementById('pdf-download-link');
+    const fallbackPdfLink = document.getElementById('fallback-pdf-link');
+
+    let currentPreviewPage = 1;
+    let totalPreviewPages = 1;
+    let selectedDrawingData = null;
+
+    // 图纸数据（从后端传递）
+    const drawingsData = {
+        {% for drawing in form.drawing.field.queryset %}
+        {{ drawing.id }}: {
+            name: "{{ drawing.name|escapejs }}",
+            url: "{{ drawing.file.url }}",
+            pageCount: {{ drawing.page_count }},
+            isValid: {{ drawing.is_valid|yesno:"true,false" }},
+            fileType: "{{ drawing.file_type }}"
+        },
+        {% endfor %}
+    };
+
+    // 监听图纸选择
+    radioButtons.forEach(radio => {
+        radio.addEventListener('change', function() {
+            // 更新按钮状态
+            completeBtn.disabled = false;
+            completeBtn.classList.remove('btn-secondary');
+            completeBtn.classList.add('btn-primary');
+
+            // 更新卡片样式
+            drawingOptions.forEach(option => {
+                option.classList.remove('border-primary', 'bg-light');
+            });
+
+            if (this.checked) {
+                const selectedOption = document.querySelector(`[data-drawing-id="${this.value}"]`);
+                if (selectedOption) {
+                    selectedOption.classList.add('border-primary', 'bg-light');
+                }
+
+                // 显示PDF预览
+                showPdfPreview(this.value);
+            }
+        });
+
+        // 检查初始选中状态
+        if (radio.checked) {
+            radio.dispatchEvent(new Event('change'));
+        }
+    });
+
+    // 显示PDF预览
+    function showPdfPreview(drawingId) {
+        console.log('Showing PDF preview for drawing:', drawingId);
+        selectedDrawingData = drawingsData[drawingId];
+        if (!selectedDrawingData) {
+            console.error('Drawing data not found for ID:', drawingId);
+            return;
+        }
+
+        // 显示预览区域
+        previewSection.style.display = 'block';
+        previewName.textContent = selectedDrawingData.name;
+
+        // 重置状态
+        previewLoading.style.display = 'block';
+        fileDisplayArea.style.display = 'none';
+        previewError.style.display = 'none';
+        previewNavigation.style.display = 'none';
+
+        // 检查文件有效性
+        if (!selectedDrawingData.isValid) {
+            console.log('Drawing is invalid');
+            previewLoading.style.display = 'none';
+            previewError.style.display = 'block';
+            fallbackPdfLink.href = selectedDrawingData.url;
+            return;
+        }
+
+        // 设置页码信息
+        totalPreviewPages = selectedDrawingData.pageCount;
+        currentPreviewPage = 1;
+        previewTotalPages.textContent = totalPreviewPages;
+
+        // 生成页码选项
+        previewPageSelect.innerHTML = '';
+        for (let i = 1; i <= totalPreviewPages; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = i;
+            if (i === 1) option.selected = true;
+            previewPageSelect.appendChild(option);
+        }
+
+        // 显示页码导航（如果多页）
+        if (totalPreviewPages > 1) {
+            previewNavigation.style.display = 'block';
+        }
+
+        // 设置文件链接
+        pdfDownloadLink.href = selectedDrawingData.url;
+        fallbackPdfLink.href = selectedDrawingData.url;
+
+        // 设置新窗口打开按钮
+        openPdfBtn.onclick = function() {
+            window.open(selectedDrawingData.url, '_blank');
+        };
+
+        // 根据文件类型加载预览
+        if (selectedDrawingData.fileType === 'pdf') {
+            loadPdfPreview();
+        } else {
+            loadImagePreview();
+        }
+    }
+
+    // 加载PDF预览
+    function loadPdfPreview() {
+        console.log('Loading PDF:', selectedDrawingData.url, 'Page:', currentPreviewPage);
+
+        // 构建PDF URL
+        const pdfUrl = `${selectedDrawingData.url}#page=${currentPreviewPage}&view=FitH`;
+        console.log('PDF URL:', pdfUrl);
+
+        // 隐藏图片，显示PDF对象
+        imageViewer.style.display = 'none';
+        pdfObject.style.display = 'block';
+
+        // 设置object源
+        pdfObject.data = pdfUrl;
+
+        // 设置加载超时
+        const loadTimeout = setTimeout(() => {
+            console.log('PDF load timeout, showing fallback');
+            previewLoading.style.display = 'none';
+            previewError.style.display = 'block';
+            fallbackPdfLink.href = selectedDrawingData.url;
+        }, 8000); // 8秒超时
+
+        // 尝试检测PDF是否加载成功
+        setTimeout(() => {
+            try {
+                // 显示PDF区域
+                previewLoading.style.display = 'none';
+                fileDisplayArea.style.display = 'block';
+                clearTimeout(loadTimeout);
+
+                // 初始化标注层
+                initializeAnnotationOverlay();
+
+                console.log('PDF display area shown');
+            } catch (e) {
+                console.error('Error showing PDF:', e);
+                previewLoading.style.display = 'none';
+                previewError.style.display = 'block';
+            }
+        }, 2000); // 2秒后显示
+
+        // 更新页码控制
+        updatePreviewPageControls();
+
+        // 延迟重新渲染标注
+        setTimeout(() => {
+            renderAnnotations();
+        }, 1000);
+    }
+
+    // 加载图片预览
+    function loadImagePreview() {
+        console.log('Loading image:', selectedDrawingData.url);
+
+        // 隐藏PDF对象，显示图片
+        pdfObject.style.display = 'none';
+        imageViewer.style.display = 'block';
+
+        // 设置图片源
+        imageViewer.src = selectedDrawingData.url;
+
+        // 图片加载完成处理
+        imageViewer.onload = function() {
+            console.log('Image loaded successfully');
+            previewLoading.style.display = 'none';
+            fileDisplayArea.style.display = 'block';
+
+            // 初始化标注层
+            initializeAnnotationOverlay();
+        };
+
+        // 图片加载错误处理
+        imageViewer.onerror = function() {
+            console.log('Image load error');
+            previewLoading.style.display = 'none';
+            previewError.style.display = 'block';
+        };
+
+        // 更新页码控制（图片只有一页）
+        updatePreviewPageControls();
+    }
+
+    // 更新页码控制
+    function updatePreviewPageControls() {
+        previewPrevBtn.disabled = currentPreviewPage === 1;
+        previewNextBtn.disabled = currentPreviewPage === totalPreviewPages;
+        previewPageSelect.value = currentPreviewPage;
+    }
+
+    // 标注工具相关元素
+    const annotationTools = document.querySelectorAll('.annotation-tool');
+    const annotationSidebar = document.getElementById('annotation-sidebar');
+    const annotationList = document.getElementById('annotation-list');
+    const annotationCount = document.getElementById('annotation-count');
+    const clearAllBtn = document.getElementById('clear-all-annotations');
+    const showListBtn = document.getElementById('show-annotation-list');
+
+    // PDF加载事件
+    previewViewer.addEventListener('load', function() {
+        previewLoading.style.display = 'none';
+        document.getElementById('pdf-viewer-wrapper').style.display = 'block';
+        initializeAnnotationLayer();
+    });
+
+    previewViewer.addEventListener('error', function() {
+        previewLoading.style.display = 'none';
+        previewError.style.display = 'block';
+    });
+
+    // 标注工具选择 - 延迟绑定确保DOM完全加载
+    setTimeout(() => {
+        const tools = document.querySelectorAll('.annotation-tool');
+        console.log('Found annotation tools:', tools.length);
+
+        tools.forEach((tool, index) => {
+            console.log(`Binding tool ${index}:`, tool.dataset.tool, tool);
+
+            // 移除旧的事件监听器
+            tool.removeEventListener('click', handleToolClick);
+
+            // 添加新的事件监听器
+            tool.addEventListener('click', handleToolClick);
+        });
+    }, 1000);
+
+    // 工具点击处理函数
+    function handleToolClick(e) {
+        console.log('=== Tool Click Event ===');
+        e.preventDefault();
+        e.stopPropagation();
+
+        const toolType = this.dataset.tool;
+        console.log('Tool clicked:', toolType);
+        console.log('Tool element:', this);
+
+        if (toolType) {
+            selectAnnotationTool(toolType);
+
+            // 关闭下拉菜单
+            const dropdown = document.getElementById('annotation-tools');
+            if (dropdown) {
+                // 使用Bootstrap的方式关闭下拉菜单
+                const bsDropdown = bootstrap.Dropdown.getInstance(dropdown);
+                if (bsDropdown) {
+                    bsDropdown.hide();
+                }
+            }
+        } else {
+            console.error('Tool type not found in dataset');
+        }
+    }
+
+    // 显示标注列表
+    showListBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        toggleAnnotationSidebar();
+    });
+
+    // 清空所有标注
+    clearAllBtn.addEventListener('click', function() {
+        if (confirm('确认删除所有标注？')) {
+            clearAllAnnotations();
+        }
+    });
+
+    // 测试标注按钮
+    if (testAnnotationBtn) {
+        testAnnotationBtn.addEventListener('click', function() {
+            console.log('Test annotation button clicked');
+            console.log('Current tool:', currentTool);
+            console.log('Canvas element:', annotationCanvas);
+            console.log('Canvas style:', annotationCanvas ? annotationCanvas.style.cssText : 'Canvas not found');
+
+            if (annotationOverlay) {
+                // 添加一个测试标注
+                const testX = 100;
+                const testY = 100;
+                console.log('Adding test annotation at:', testX, testY);
+
+                const annotation = {
+                    id: ++annotationCounter,
+                    type: 'point',
+                    x: testX,
+                    y: testY,
+                    note: '测试标注',
+                    page: currentPreviewPage
+                };
+
+                annotations.push(annotation);
+                renderAnnotations();
+                updateAnnotationList();
+                showToolTip('测试标注已添加');
+            } else {
+                alert('标注层未找到！');
+            }
+        });
+    }
+
+    // 页码导航事件
+    previewPrevBtn.addEventListener('click', function() {
+        if (currentPreviewPage > 1) {
+            currentPreviewPage--;
+            loadPdfPreview();
+        }
+    });
+
+    previewNextBtn.addEventListener('click', function() {
+        if (currentPreviewPage < totalPreviewPages) {
+            currentPreviewPage++;
+            loadPdfPreview();
+        }
+    });
+
+    previewPageSelect.addEventListener('change', function() {
+        currentPreviewPage = parseInt(this.value);
+        loadPdfPreview();
+    });
+
+    // 点击卡片选中对应的单选按钮
+    drawingOptions.forEach(option => {
+        option.addEventListener('click', function(e) {
+            if (e.target.type !== 'radio') {
+                const radio = this.querySelector('input[type="radio"]');
+                if (radio) {
+                    radio.checked = true;
+                    radio.dispatchEvent(new Event('change'));
+                }
+            }
+        });
+    });
+
+    // 表单提交验证
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            console.log('=== Form Submit Event ===');
+            console.log('Annotations count:', annotations.length);
+            console.log('Annotations data:', annotations);
+
+            const selectedDrawing = document.querySelector('input[name="drawing"]:checked');
+            if (!selectedDrawing) {
+                e.preventDefault();
+                alert('请选择一张图纸');
+                return;
+            }
+
+            // 总是尝试保存标注数据（即使为空）
+            e.preventDefault();
+            console.log('Preventing default form submit');
+            console.log('Saving annotations to server:', annotations);
+
+            saveAnnotationsToServer().then((response) => {
+                console.log('Annotations saved successfully:', response);
+                console.log('Now submitting form...');
+                // 移除事件监听器避免循环
+                form.removeEventListener('submit', arguments.callee);
+                form.submit();
+            }).catch(error => {
+                console.error('保存标注失败:', error);
+                if (confirm('标注数据保存失败，是否继续创建任务？')) {
+                    // 移除事件监听器避免循环
+                    form.removeEventListener('submit', arguments.callee);
+                    form.submit();
+                }
+            });
+        });
+    }
+
+    // 使用全局保存函数
+    function saveAnnotationsToServer() {
+        return window.saveAnnotationsToServer();
+    }
+
+    // 初始化标注层
+    function initializeAnnotationOverlay() {
+        console.log('Initializing annotation overlay');
+
+        if (!annotationOverlay) {
+            console.error('Annotation overlay not found');
+            return;
+        }
+
+        // 清除现有标注
+        annotations = [];
+        annotationOverlay.innerHTML = '';
+        updateAnnotationList();
+
+        // 移除旧的事件监听器
+        annotationOverlay.removeEventListener('click', handleOverlayClick);
+
+        // 绑定点击事件
+        annotationOverlay.addEventListener('click', handleOverlayClick);
+
+        // 设置样式
+        annotationOverlay.style.cursor = 'default';
+        annotationOverlay.style.pointerEvents = 'auto';
+
+        console.log('Annotation overlay initialized successfully');
+    }
+
+    // 处理标注层点击
+    function handleOverlayClick(e) {
+        console.log('=== Overlay clicked ===');
+        console.log('Current tool:', currentTool);
+        console.log('Event target:', e.target);
+
+        if (currentTool === 'none' || !currentTool) {
+            console.log('No tool selected');
+            alert('请先选择标注工具！\n\n1. 点击标注工具按钮\n2. 然后点击图片添加标注');
+            return;
+        }
+
+        if (annotations.length >= maxAnnotations) {
+            alert(`当前任务标注数量已达上限（${maxAnnotations}个），请删除部分标注后再添加`);
+            return;
+        }
+
+        // 阻止事件冒泡
+        e.preventDefault();
+        e.stopPropagation();
+
+        const overlay = document.getElementById('annotation-overlay');
+        const rect = overlay.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        console.log('Click position:', x, y);
+        console.log('Overlay rect:', rect);
+
+        if (currentTool === 'point') {
+            console.log('Creating point annotation');
+            window.createPointAnnotation(x, y);
+        } else if (currentTool === 'line') {
+            console.log('Line tool - isDrawingLine:', isDrawingLine);
+            if (!isDrawingLine) {
+                // 开始绘制线条
+                isDrawingLine = true;
+                lineStartX = x;
+                lineStartY = y;
+                console.log('Line start:', lineStartX, lineStartY);
+                alert('请点击线条的终点位置');
+            } else {
+                // 完成线条绘制
+                isDrawingLine = false;
+                console.log('Line end:', x, y);
+                window.createLineAnnotation(lineStartX, lineStartY, x, y);
+            }
+        } else if (currentTool === 'text') {
+            console.log('Creating text annotation');
+            window.createTextAnnotation(x, y);
+        } else {
+            console.log('Unknown tool:', currentTool);
+        }
+
+        console.log('=== Overlay click handled ===');
+    }
+
+    function selectAnnotationTool(toolType) {
+        console.log('=== Selecting annotation tool ===');
+        console.log('Tool type:', toolType);
+        console.log('Current tool before:', currentTool);
+
+        currentTool = toolType;
+        console.log('Current tool after:', currentTool);
+
+        const overlay = document.getElementById('annotation-overlay');
+        console.log('Annotation overlay found:', !!overlay);
+
+        if (!overlay) {
+            console.error('Annotation overlay not found');
+            alert('标注层未找到，请刷新页面重试');
+            return;
+        }
+
+        // 更新鼠标样式
+        switch(toolType) {
+            case 'point':
+                overlay.style.cursor = 'crosshair';
+                console.log('Set cursor to crosshair');
+                break;
+            case 'text':
+                overlay.style.cursor = 'text';
+                console.log('Set cursor to text');
+                break;
+            default:
+                overlay.style.cursor = 'default';
+                console.log('Set cursor to default');
+        }
+
+        // 确保层可以接收点击事件
+        overlay.style.pointerEvents = 'auto';
+        overlay.style.zIndex = '10';
+
+        // 显示工具提示
+        const toolName = getToolName(toolType);
+        showToolTip(`已选择${toolName}工具，点击图片进行标注`);
+
+        console.log('Tool selected successfully:', toolType);
+        console.log('=== Tool selection complete ===');
+    }
+
+    function getToolName(toolType) {
+        const names = {
+            'point': '点标记',
+            'rectangle': '矩形标记',
+            'text': '文字标注'
+        };
+        return names[toolType] || '';
+    }
+
+    function handleClick(e) {
+        console.log('Handle click:', currentTool, e);
+
+        if (currentTool === 'point') {
+            if (annotations.length >= maxAnnotations) {
+                alert(`当前任务标注数量已达上限（${maxAnnotations}个），请删除部分标注后再添加`);
+                return;
+            }
+
+            const rect = interactionLayer.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            console.log('Creating point annotation at:', x, y);
+            createPointAnnotation(x, y);
+        } else if (currentTool === 'text') {
+            if (annotations.length >= maxAnnotations) {
+                alert(`当前任务标注数量已达上限（${maxAnnotations}个），请删除部分标注后再添加`);
+                return;
+            }
+
+            const rect = interactionLayer.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            console.log('Creating text annotation at:', x, y);
+            createTextAnnotation(x, y);
+        } else {
+            console.log('No tool selected or tool not recognized:', currentTool);
+        }
+    }
+
+    function createPointAnnotation(x, y) {
+        const note = prompt('请输入备注（最多30字）：', '');
+        if (note === null) return;
+
+        if (note.length > 30) {
+            alert('备注内容不能超过30字');
+            return;
+        }
+
+        const annotation = {
+            id: ++annotationCounter,
+            type: 'point',
+            x: x,
+            y: y,
+            note: note,
+            page: currentPreviewPage
+        };
+
+        annotations.push(annotation);
+        renderAnnotations();
+        updateAnnotationList();
+        showToolTip('点标记添加成功');
+    }
+
+    function createTextAnnotation(x, y) {
+        const text = prompt('请输入文字标注：', '');
+        if (text === null || text.trim() === '') return;
+
+        const annotation = {
+            id: ++annotationCounter,
+            type: 'text',
+            x: x,
+            y: y,
+            text: text.trim(),
+            page: currentPreviewPage
+        };
+
+        annotations.push(annotation);
+        renderAnnotations();
+        updateAnnotationList();
+        showToolTip('文字标注添加成功');
+    }
+
+    // 渲染所有标注为DOM元素
+    function renderAnnotations() {
+        if (!annotationOverlay) return;
+
+        // 清除现有标注元素
+        annotationOverlay.innerHTML = '';
+
+        // 渲染当前页的标注
+        const currentPageAnnotations = annotations.filter(a => a.page === currentPreviewPage);
+
+        currentPageAnnotations.forEach(annotation => {
+            const element = document.createElement('div');
+            element.className = 'annotation-marker';
+            element.dataset.annotationId = annotation.id;
+
+            if (annotation.type === 'point') {
+                // 创建点标记
+                element.style.cssText = `
+                    position: absolute;
+                    left: ${annotation.x - 6}px;
+                    top: ${annotation.y - 6}px;
+                    width: 12px;
+                    height: 12px;
+                    background-color: red;
+                    border: 2px solid darkred;
+                    border-radius: 50%;
+                    cursor: pointer;
+                    z-index: 10;
+                `;
+                element.title = annotation.note;
+                element.onclick = function(e) {
+                    e.stopPropagation();
+                    if (confirm('删除此标注？')) {
+                        deleteAnnotation(annotation.id);
+                    }
+                };
+
+            } else if (annotation.type === 'text') {
+                // 创建文字标注
+                element.style.cssText = `
+                    position: absolute;
+                    left: ${annotation.x}px;
+                    top: ${annotation.y - 16}px;
+                    background: rgba(255,255,255,0.9);
+                    color: red;
+                    font-weight: bold;
+                    font-size: 12px;
+                    padding: 2px 6px;
+                    border-radius: 3px;
+                    border: 1px solid red;
+                    cursor: pointer;
+                    z-index: 10;
+                    max-width: 150px;
+                    word-wrap: break-word;
+                `;
+                element.textContent = annotation.text;
+                element.onclick = function(e) {
+                    e.stopPropagation();
+                    if (confirm('删除此标注？')) {
+                        deleteAnnotation(annotation.id);
+                    }
+                };
+            }
+
+            annotationOverlay.appendChild(element);
+        });
+    }
+
+    function updateAnnotationList() {
+        annotationCount.textContent = annotations.length;
+
+        if (annotations.length === 0) {
+            annotationList.innerHTML = '<p class="text-muted text-center mb-0">暂无标注</p>';
+            return;
+        }
+
+        const listHtml = annotations.map(annotation => {
+            const typeIcon = {
+                'point': 'fas fa-circle',
+                'rectangle': 'fas fa-square',
+                'text': 'fas fa-font'
+            }[annotation.type];
+
+            const content = annotation.note || annotation.text || '';
+            const truncated = content.length > 20 ? content.substring(0, 20) + '...' : content;
+
+            return `
+                <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
+                    <div>
+                        <i class="${typeIcon} text-danger"></i>
+                        <small class="ms-2">${truncated}</small>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger" onclick="deleteAnnotation(${annotation.id})">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            `;
+        }).join('');
+
+        annotationList.innerHTML = listHtml;
+    }
+
+    function toggleAnnotationSidebar() {
+        const isVisible = annotationSidebar.style.display !== 'none';
+        annotationSidebar.style.display = isVisible ? 'none' : 'block';
+    }
+
+    function clearAllAnnotations() {
+        annotations = [];
+        renderAnnotations();
+        updateAnnotationList();
+        showToolTip('已清空所有标注');
+    }
+
+    function deleteAnnotation(id) {
+        annotations = annotations.filter(a => a.id !== id);
+        renderAnnotations();
+        updateAnnotationList();
+        showToolTip('标注已删除');
+    }
+
+    function showToolTip(message) {
+        // 简单的提示实现
+        const tooltip = document.createElement('div');
+        tooltip.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            z-index: 9999;
+            font-size: 14px;
+        `;
+        tooltip.textContent = message;
+        document.body.appendChild(tooltip);
+
+        setTimeout(() => {
+            document.body.removeChild(tooltip);
+        }, 2000);
+    }
+
+    // 全局函数供HTML调用
+    window.deleteAnnotation = deleteAnnotation;
+    window.selectAnnotationTool = selectAnnotationTool;  // 让按钮可以直接调用
+
+    // 简化的全局工具选择函数
+    window.selectTool = function(toolType) {
+        console.log('Global selectTool called:', toolType);
+        currentTool = toolType;
+
+        const overlay = document.getElementById('annotation-overlay');
+        if (overlay) {
+            switch(toolType) {
+                case 'point':
+                    overlay.style.cursor = 'crosshair';
+                    break;
+                case 'text':
+                    overlay.style.cursor = 'text';
+                    break;
+                default:
+                    overlay.style.cursor = 'default';
+            }
+            overlay.style.pointerEvents = 'auto';
+            overlay.style.zIndex = '10';
+        }
+
+        alert(`已选择${toolType === 'point' ? '点标记' : '文字标注'}工具，现在点击图片进行标注`);
+        console.log('Tool selected:', toolType);
+    };
+
+    // 测试函数 - 可以在Console中调用
+    window.testToolSelection = function(toolType) {
+        console.log('Testing tool selection:', toolType);
+        selectAnnotationTool(toolType);
+    };
+
+    window.debugAnnotationSystem = function() {
+        console.log('=== Annotation System Debug ===');
+        console.log('Current tool:', currentTool);
+        console.log('Annotations count:', annotations.length);
+        console.log('Annotation overlay:', document.getElementById('annotation-overlay'));
+        console.log('Annotation tools:', document.querySelectorAll('.annotation-tool'));
+        console.log('================================');
+    };
+});
+</script>
+
+<style>
+.drawing-option {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+}
+
+.drawing-option:hover {
+    border-color: #dee2e6;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.drawing-option.border-primary {
+    border-color: #0d6efd !important;
+}
+
+.form-check-input:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+/* 标注相关样式 */
+.annotation-point {
+    box-shadow: 0 0 4px rgba(255, 0, 0, 0.5);
+}
+
+.annotation-point:hover {
+    transform: scale(1.2);
+    box-shadow: 0 0 8px rgba(255, 0, 0, 0.8);
+}
+
+.annotation-text:hover {
+    background: rgba(255, 255, 255, 1) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.annotation-rectangle {
+    border: 2px solid red;
+    background: rgba(255, 0, 0, 0.1);
+    cursor: pointer;
+}
+
+.annotation-rectangle:hover {
+    background: rgba(255, 0, 0, 0.2);
+    border-color: darkred;
+}
+
+#interaction-layer[data-active-tool="point"] {
+    cursor: crosshair !important;
+}
+
+#interaction-layer[data-active-tool="rectangle"] {
+    cursor: crosshair !important;
+}
+
+#interaction-layer[data-active-tool="text"] {
+    cursor: text !important;
+}
+</style>
+{% endblock %}

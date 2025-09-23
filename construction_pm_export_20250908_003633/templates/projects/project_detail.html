@@ -1,0 +1,437 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ project.name }} - 项目主页{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 项目信息头部 -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h2><i class="fas fa-building"></i> {{ project.name }}</h2>
+                            <p class="text-muted mb-2">{{ project.description }}</p>
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-{% if project.status == 'active' %}success{% elif project.status == 'planning' %}warning{% elif project.status == 'completed' %}info{% else %}secondary{% endif %} me-2">
+                                    {{ project.get_status_display }}
+                                </span>
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar"></i>
+                                    {{ project.start_date|date:"Y-m-d" }} ~ {{ project.end_date|date:"Y-m-d" }}
+                                </small>
+                            </div>
+                        </div>
+                        <div class="btn-group">
+                            <a href="{% url 'gantt:project_gantt' project.pk %}" class="btn btn-info">
+                                <i class="fas fa-chart-gantt"></i> 甘特图
+                            </a>
+                            <a href="{% url 'projects:project_update' project.pk %}" class="btn btn-outline-primary">
+                                <i class="fas fa-edit"></i> 编辑项目
+                            </a>
+                            <a href="{% url 'projects:project_list' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> 返回列表
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 项目进度条 -->
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <small class="text-muted">项目进度</small>
+                            <small class="text-muted">{{ project.progress_percentage }}%</small>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-{% if project.progress_percentage < 30 %}danger{% elif project.progress_percentage < 70 %}warning{% else %}success{% endif %}"
+                                 style="width: {{ project.progress_percentage }}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-industry fa-2x text-primary mb-2"></i>
+                    <h4>{{ stats.total_worksites }}</h4>
+                    <p class="mb-0">工地数量</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-file-image fa-2x text-info mb-2"></i>
+                    <h4>{{ stats.total_drawings }}</h4>
+                    <p class="mb-0">图纸总数</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-tasks fa-2x text-success mb-2"></i>
+                    <h4>{{ stats.total_tasks }}</h4>
+                    <p class="mb-0">任务总数</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-play fa-2x text-warning mb-2"></i>
+                    <h4>{{ stats.in_progress_tasks }}</h4>
+                    <p class="mb-0">进行中</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-clock fa-2x text-secondary mb-2"></i>
+                    <h4>{{ stats.pending_tasks }}</h4>
+                    <p class="mb-0">待开始</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                    <h4>{{ stats.completed_tasks }}</h4>
+                    <p class="mb-0">已完成</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主要内容区域 -->
+    <div class="row">
+        <div class="col-12">
+            <!-- 导航标签 -->
+            <ul class="nav nav-tabs" id="projectTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="worksites-tab" data-bs-toggle="tab" data-bs-target="#worksites" type="button" role="tab">
+                        <i class="fas fa-industry"></i> 工地管理 ({{ stats.total_worksites }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="drawings-tab" data-bs-toggle="tab" data-bs-target="#drawings" type="button" role="tab">
+                        <i class="fas fa-file-image"></i> 图纸管理 ({{ stats.total_drawings }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tasks-tab" data-bs-toggle="tab" data-bs-target="#tasks" type="button" role="tab">
+                        <i class="fas fa-tasks"></i> 主任务 ({{ stats.main_tasks }})
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="subtasks-tab" data-bs-toggle="tab" data-bs-target="#subtasks" type="button" role="tab">
+                        <i class="fas fa-list-ul"></i> 子任务 ({{ stats.subtasks }})
+                    </button>
+                </li>
+            </ul>
+
+            <!-- 标签内容 -->
+            <div class="tab-content" id="projectTabsContent">
+                <!-- 工地管理标签页 -->
+                <div class="tab-pane fade show active" id="worksites" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-industry me-2"></i>工地列表
+                            </h5>
+                            <a href="{% url 'projects:worksite_create' project.pk %}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus me-1"></i>新建工地
+                            </a>
+                        </div>
+                        <div class="card-body">
+                            {% if worksites %}
+                                <div class="row">
+                                    {% for worksite in worksites %}
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card h-100">
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <h6 class="card-title">
+                                                        <i class="fas fa-industry me-2"></i>{{ worksite.name }}
+                                                    </h6>
+                                                    <span class="badge bg-{% if worksite.status == 'active' %}success{% elif worksite.status == 'preparing' %}warning{% elif worksite.status == 'completed' %}info{% else %}secondary{% endif %}">
+                                                        {{ worksite.get_status_display }}
+                                                    </span>
+                                                </div>
+                                                <p class="card-text text-muted small">{{ worksite.description|truncatechars:100 }}</p>
+                                                <div class="row text-center">
+                                                    <div class="col-4">
+                                                        <small class="text-muted">图纸</small>
+                                                        <div class="fw-bold">{{ worksite.drawings.count }}</div>
+                                                    </div>
+                                                    <div class="col-4">
+                                                        <small class="text-muted">任务</small>
+                                                        <div class="fw-bold">{{ worksite.tasks.count }}</div>
+                                                    </div>
+                                                    <div class="col-4">
+                                                        <small class="text-muted">负责人</small>
+                                                        <div class="fw-bold">{{ worksite.site_manager|default:"未设置" }}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="card-footer bg-transparent">
+                                                <div class="btn-group w-100">
+                                                    <a href="{% url 'projects:worksite_detail' worksite.pk %}" class="btn btn-outline-primary btn-sm">
+                                                        <i class="fas fa-eye"></i> 查看
+                                                    </a>
+                                                    <a href="{% url 'projects:worksite_update' worksite.pk %}" class="btn btn-outline-secondary btn-sm">
+                                                        <i class="fas fa-edit"></i> 编辑
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="text-center py-4">
+                                    <i class="fas fa-industry fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted">该项目还没有工地</p>
+                                    <a href="{% url 'projects:worksite_create' project.pk %}" class="btn btn-primary">
+                                        <i class="fas fa-plus me-1"></i>创建第一个工地
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 图纸管理标签页 -->
+                <div class="tab-pane fade" id="drawings" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">项目图纸汇总</h5>
+                            <small class="text-muted">所有工地的图纸汇总显示，请在具体工地中上传图纸</small>
+                        </div>
+                        <div class="card-body">
+                            {% if drawings %}
+                                <div class="row">
+                                    {% for drawing in drawings %}
+                                    <div class="col-md-6 col-lg-4 mb-3">
+                                        <div class="card">
+                                            <div class="card-body">
+                                                <h6 class="card-title">{{ drawing.name }}</h6>
+                                                <p class="card-text small text-muted">
+                                                    上传时间：{{ drawing.uploaded_at|date:"Y-m-d H:i" }}
+                                                </p>
+                                                <div class="btn-group btn-group-sm w-100">
+                                                    <a href="{% url 'drawings:drawing_detail' drawing.pk %}" class="btn btn-outline-primary">查看</a>
+                                                    <a href="#" class="btn btn-outline-success" onclick="alert('编辑功能开发中...')">编辑</a>
+                                                    <a href="{% url 'drawings:drawing_delete' drawing.pk %}" class="btn btn-outline-danger"
+                                                       onclick="return confirm('确认删除图纸「{{ drawing.name }}」？')">删除</a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fas fa-file-image fa-3x text-muted mb-3"></i>
+                                    <h5>还没有图纸</h5>
+                                    <p class="text-muted">请先创建工地，然后在工地中上传图纸</p>
+                                    {% if not worksites %}
+                                    <a href="{% url 'projects:worksite_create' project.pk %}" class="btn btn-primary">
+                                        <i class="fas fa-plus"></i> 创建工地
+                                    </a>
+                                    {% else %}
+                                    <p class="text-muted small">在上方"工地管理"标签页中选择工地，然后上传图纸</p>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 任务管理标签页 -->
+                <div class="tab-pane fade" id="tasks" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">项目主任务汇总</h5>
+                            <small class="text-muted">所有工地的主任务汇总显示，不包含子任务</small>
+                        </div>
+                        <div class="card-body">
+                            {% if tasks %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>任务名称</th>
+                                                <th>类型</th>
+                                                <th>负责人</th>
+                                                <th>状态</th>
+                                                <th>子任务数</th>
+                                                <th>截止时间</th>
+                                                <th>操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for task in tasks %}
+                                            <tr>
+                                                <td>{{ task.name }}</td>
+                                                <td>{{ task.get_task_type_display }}</td>
+                                                <td>{{ task.responsible_person }}</td>
+                                                <td>
+                                                    <span class="badge bg-{% if task.status == 'completed' %}success{% elif task.status == 'in_progress' %}warning{% elif task.status == 'pending' %}secondary{% else %}danger{% endif %}">
+                                                        {{ task.get_status_display }}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge bg-info">
+                                                        {{ task.get_subtasks_count }}
+                                                    </span>
+                                                    {% if task.get_subtasks_count > 0 %}
+                                                        <small class="text-muted ms-1">
+                                                            ({{ task.get_completed_subtasks_count }}/{{ task.get_subtasks_count }} 完成)
+                                                        </small>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ task.deadline|date:"Y-m-d" }}</td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <a href="{% url 'tasks:task_detail' task.pk %}" class="btn btn-outline-primary">查看</a>
+                                                        <a href="{% url 'tasks:task_update' task.pk %}" class="btn btn-outline-success">编辑</a>
+                                                        <a href="{% url 'tasks:task_delete' task.pk %}" class="btn btn-outline-danger"
+                                                           onclick="return confirm('确认删除任务「{{ task.name }}」？')">删除</a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fas fa-tasks fa-3x text-muted mb-3"></i>
+                                    <h5>还没有任务</h5>
+                                    <p class="text-muted">请先创建工地，然后在工地中创建任务</p>
+                                    {% if not worksites %}
+                                    <a href="{% url 'projects:worksite_create' project.pk %}" class="btn btn-primary">
+                                        <i class="fas fa-plus"></i> 创建工地
+                                    </a>
+                                    {% else %}
+                                    <p class="text-muted small">在上方"工地管理"标签页中选择工地，然后创建任务</p>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 子任务管理标签页 -->
+                <div class="tab-pane fade" id="subtasks" role="tabpanel">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">项目子任务汇总</h5>
+                            <small class="text-muted">所有工地的子任务汇总显示</small>
+                        </div>
+                        <div class="card-body">
+                            {% if subtasks %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>子任务名称</th>
+                                                <th>父任务</th>
+                                                <th>工地</th>
+                                                <th>类型</th>
+                                                <th>负责人</th>
+                                                <th>状态</th>
+                                                <th>截止时间</th>
+                                                <th>操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for subtask in subtasks %}
+                                            <tr>
+                                                <td>
+                                                    <i class="fas fa-level-up-alt text-muted me-1" title="子任务"></i>
+                                                    {{ subtask.name }}
+                                                </td>
+                                                <td>
+                                                    <a href="{% url 'tasks:task_detail' subtask.parent_task.pk %}" class="text-decoration-none">
+                                                        {{ subtask.parent_task.name }}
+                                                    </a>
+                                                </td>
+                                                <td>
+                                                    <a href="{% url 'projects:worksite_detail' subtask.worksite.pk %}" class="text-decoration-none">
+                                                        {{ subtask.worksite.name }}
+                                                    </a>
+                                                </td>
+                                                <td>{{ subtask.get_task_type_display }}</td>
+                                                <td>{{ subtask.responsible_person }}</td>
+                                                <td>
+                                                    <span class="badge bg-{% if subtask.status == 'completed' %}success{% elif subtask.status == 'in_progress' %}warning{% elif subtask.status == 'pending' %}secondary{% else %}danger{% endif %}">
+                                                        {{ subtask.get_status_display }}
+                                                    </span>
+                                                </td>
+                                                <td>{{ subtask.deadline|date:"Y-m-d" }}</td>
+                                                <td>
+                                                    <div class="btn-group btn-group-sm">
+                                                        <a href="{% url 'tasks:task_detail' subtask.pk %}" class="btn btn-outline-primary">查看</a>
+                                                        <a href="{% url 'tasks:task_update' subtask.pk %}" class="btn btn-outline-success">编辑</a>
+                                                        <a href="{% url 'tasks:task_delete' subtask.pk %}" class="btn btn-outline-danger"
+                                                           onclick="return confirm('确认删除子任务「{{ subtask.name }}」？')">删除</a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-4">
+                                    <i class="fas fa-list-ul fa-3x text-muted mb-3"></i>
+                                    <h5 class="text-muted">暂无子任务</h5>
+                                    <p class="text-muted">子任务需要在主任务中创建</p>
+                                    {% if not worksites %}
+                                    <a href="{% url 'projects:worksite_create' project.pk %}" class="btn btn-primary">
+                                        <i class="fas fa-plus"></i> 创建工地
+                                    </a>
+                                    {% else %}
+                                    <p class="text-muted small">在上方"主任务"标签页中选择任务，然后创建子任务</p>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化Bootstrap标签页
+    const triggerTabList = document.querySelectorAll('#projectTabs button');
+    triggerTabList.forEach(triggerEl => {
+        const tabTrigger = new bootstrap.Tab(triggerEl);
+
+        triggerEl.addEventListener('click', event => {
+            event.preventDefault();
+            tabTrigger.show();
+        });
+    });
+
+    console.log('Project detail page loaded');
+    console.log('Project ID: {{ project.id }}');
+    console.log('Drawings count: {{ stats.total_drawings }}');
+    console.log('Tasks count: {{ stats.total_tasks }}');
+});
+</script>
+{% endblock %}

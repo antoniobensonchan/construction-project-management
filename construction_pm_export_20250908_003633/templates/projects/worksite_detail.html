@@ -1,0 +1,227 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ worksite.name }} - 工地详情{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- 页面标题 -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="page-title">{{ worksite.name }}</h1>
+                <p class="page-subtitle">
+                    <a href="{% url 'projects:project_detail' project.pk %}" class="text-decoration-none">
+                        {{ project.name }}
+                    </a> / 工地详情
+                </p>
+            </div>
+            <div class="btn-group">
+                <a href="{% url 'projects:project_detail' project.pk %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>返回项目
+                </a>
+                <a href="{% url 'projects:worksite_update' worksite.pk %}" class="btn btn-primary">
+                    <i class="fas fa-edit me-2"></i>编辑工地
+                </a>
+            </div>
+        </div>
+
+        <!-- 工地信息卡片 -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-industry me-2"></i>工地信息
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>工地名称：</strong>{{ worksite.name }}</p>
+                                <p><strong>工地状态：</strong>
+                                    <span class="badge bg-{% if worksite.status == 'active' %}success{% elif worksite.status == 'preparing' %}warning{% elif worksite.status == 'completed' %}info{% else %}secondary{% endif %}">
+                                        {{ worksite.get_status_display }}
+                                    </span>
+                                </p>
+                                <p><strong>工地负责人：</strong>{{ worksite.site_manager|default:"未设置" }}</p>
+                                <p><strong>联系电话：</strong>{{ worksite.contact_phone|default:"未设置" }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>工地地址：</strong>{{ worksite.location|default:"未设置" }}</p>
+                                <p><strong>创建时间：</strong>{{ worksite.created_at|date:"Y-m-d H:i" }}</p>
+                                <p><strong>更新时间：</strong>{{ worksite.updated_at|date:"Y-m-d H:i" }}</p>
+                            </div>
+                        </div>
+                        {% if worksite.description %}
+                        <div class="mt-3">
+                            <p><strong>工地描述：</strong></p>
+                            <p class="text-muted">{{ worksite.description }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <!-- 统计卡片 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">工地统计</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-6 mb-3">
+                                <i class="fas fa-file-image fa-2x text-info mb-2"></i>
+                                <h4>{{ stats.total_drawings }}</h4>
+                                <p class="mb-0 small">图纸数量</p>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <i class="fas fa-tasks fa-2x text-success mb-2"></i>
+                                <h4>{{ stats.total_tasks }}</h4>
+                                <p class="mb-0 small">任务数量</p>
+                            </div>
+                            <div class="col-6">
+                                <i class="fas fa-play fa-2x text-warning mb-2"></i>
+                                <h4>{{ stats.in_progress_tasks }}</h4>
+                                <p class="mb-0 small">进行中</p>
+                            </div>
+                            <div class="col-6">
+                                <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                                <h4>{{ stats.completed_tasks }}</h4>
+                                <p class="mb-0 small">已完成</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 标签页导航 -->
+        <div class="card">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" id="worksiteTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="drawings-tab" data-bs-toggle="tab" data-bs-target="#drawings" type="button" role="tab">
+                            <i class="fas fa-file-image"></i> 图纸管理 ({{ stats.total_drawings }})
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="tasks-tab" data-bs-toggle="tab" data-bs-target="#tasks" type="button" role="tab">
+                            <i class="fas fa-tasks"></i> 任务管理 ({{ stats.total_tasks }})
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="worksiteTabsContent">
+                    <!-- 图纸管理标签页 -->
+                    <div class="tab-pane fade show active" id="drawings" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0">图纸列表</h6>
+                            <a href="{% url 'drawings:worksite_drawing_upload' worksite.pk %}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus me-1"></i>上传图纸
+                            </a>
+                        </div>
+
+                        {% if drawings %}
+                            <div class="row">
+                                {% for drawing in drawings %}
+                                <div class="col-md-4 mb-3">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h6 class="card-title">{{ drawing.name }}</h6>
+                                            <p class="card-text small text-muted">
+                                                上传时间: {{ drawing.uploaded_at|date:"Y-m-d" }}
+                                            </p>
+                                            <div class="btn-group w-100">
+                                                <a href="{% url 'drawings:drawing_detail' drawing.pk %}" class="btn btn-outline-primary btn-sm">
+                                                    <i class="fas fa-eye"></i> 查看
+                                                </a>
+                                                <button class="btn btn-outline-secondary btn-sm">
+                                                    <i class="fas fa-download"></i> 下载
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-file-image fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">该工地还没有图纸</p>
+                                <a href="{% url 'drawings:worksite_drawing_upload' worksite.pk %}" class="btn btn-primary">
+                                    <i class="fas fa-plus me-1"></i>上传第一张图纸
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- 任务管理标签页 -->
+                    <div class="tab-pane fade" id="tasks" role="tabpanel">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="mb-0">任务列表</h6>
+                            <a href="{% url 'tasks:worksite_task_create' worksite.pk %}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus me-1"></i>创建任务
+                            </a>
+                        </div>
+
+                        {% if tasks %}
+                            <div class="row">
+                                {% for task in tasks %}
+                                <div class="col-md-6 mb-3">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <h6 class="card-title">
+                                                    {% if task.parent_task %}
+                                                        <i class="fas fa-level-up-alt me-1"></i>
+                                                    {% endif %}
+                                                    {{ task.name }}
+                                                </h6>
+                                                <span class="badge bg-{% if task.status == 'completed' %}success{% elif task.status == 'in_progress' %}warning{% else %}secondary{% endif %}">
+                                                    {{ task.get_status_display }}
+                                                </span>
+                                            </div>
+                                            <p class="card-text small text-muted">{{ task.description|truncatechars:80 }}</p>
+                                            <p class="card-text small">
+                                                <strong>负责人:</strong> {{ task.responsible_person }}<br>
+                                                <strong>截止日期:</strong> {{ task.deadline|date:"Y-m-d" }}<br>
+                                                {% if not task.parent_task %}
+                                                    <strong>子任务:</strong>
+                                                    <span class="badge bg-info">{{ task.get_subtasks_count }}</span>
+                                                    {% if task.get_subtasks_count > 0 %}
+                                                        <small class="text-muted">
+                                                            ({{ task.get_completed_subtasks_count }}/{{ task.get_subtasks_count }} 完成)
+                                                        </small>
+                                                    {% endif %}
+                                                {% endif %}
+                                            </p>
+                                            <div class="btn-group w-100">
+                                                <a href="{% url 'tasks:task_detail' task.pk %}" class="btn btn-outline-primary btn-sm">
+                                                    <i class="fas fa-eye"></i> 查看
+                                                </a>
+                                                <a href="{% url 'tasks:task_update' task.pk %}" class="btn btn-outline-secondary btn-sm">
+                                                    <i class="fas fa-edit"></i> 编辑
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-tasks fa-3x text-muted mb-3"></i>
+                                <p class="text-muted">该工地还没有任务</p>
+                                <a href="{% url 'tasks:worksite_task_create' worksite.pk %}" class="btn btn-primary">
+                                    <i class="fas fa-plus me-1"></i>创建第一个任务
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

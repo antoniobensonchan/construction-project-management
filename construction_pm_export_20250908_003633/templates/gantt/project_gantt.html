@@ -1,0 +1,688 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ project.name }} - 甘特图{% endblock %}
+
+{% block extra_css %}
+<style>
+    .gantt-container {
+        overflow-x: auto;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background: white;
+    }
+
+    .gantt-header {
+        background: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+        padding: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .gantt-timeline-container {
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .gantt-timeline {
+        background: #fff;
+    }
+
+    .gantt-sidebar {
+        min-width: 300px;
+        background: #f8f9fa;
+        border-right: 2px solid #dee2e6;
+        flex-shrink: 0;
+    }
+
+    .gantt-chart {
+        flex: 1;
+        position: relative;
+        overflow-x: auto;
+        min-width: 0;
+    }
+
+    .timeline-header {
+        flex: 1;
+        height: 60px;
+        background: #e9ecef;
+        border-bottom: 1px solid #dee2e6;
+        display: flex;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        overflow-x: auto;
+        min-width: 0;
+    }
+
+    .timeline-day {
+        min-width: 30px;
+        text-align: center;
+        border-right: 1px solid #dee2e6;
+        padding: 5px 2px;
+        font-size: 11px;
+    }
+
+    .timeline-day.weekend {
+        background: #ffe6e6;
+    }
+
+    .timeline-day.today {
+        background: #007bff;
+        color: white;
+        font-weight: bold;
+    }
+
+    .worksite-group {
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .worksite-header {
+        background: #6c757d;
+        color: white;
+        padding: 10px 15px;
+        font-weight: bold;
+        border-bottom: 1px solid #495057;
+        height: 40px;
+        display: flex;
+        align-items: center;
+    }
+
+    .worksite-timeline-header {
+        background: #6c757d;
+        height: 40px;
+        border-bottom: 1px solid #495057;
+    }
+
+    .gantt-row {
+        display: flex;
+        min-height: 40px;
+        border-bottom: 1px solid #e9ecef;
+        align-items: stretch;
+    }
+
+    .gantt-row:hover .task-info {
+        background: #e9ecef;
+    }
+
+    .task-info {
+        min-width: 300px;
+        width: 300px;
+        padding: 8px 15px;
+        border-right: 2px solid #dee2e6;
+        background: #f8f9fa;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .task-name {
+        font-weight: 500;
+        margin-bottom: 2px;
+    }
+
+    .task-name.subtask {
+        margin-left: 20px;
+        font-size: 0.9em;
+        color: #6c757d;
+    }
+
+    .task-name.subtask::before {
+        content: "└ ";
+        color: #adb5bd;
+    }
+
+    .task-details {
+        font-size: 0.8em;
+        color: #6c757d;
+    }
+
+    .task-timeline {
+        flex: 1;
+        position: relative;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        background: white;
+    }
+
+    .task-bar {
+        height: 20px;
+        border-radius: 4px;
+        position: relative;
+        margin: 2px 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        color: white;
+        font-weight: 500;
+        text-shadow: 1px 1px 1px rgba(0,0,0,0.3);
+    }
+
+    .task-bar.status-open {
+        background: linear-gradient(135deg, #6c757d, #495057);
+    }
+
+    .task-bar.status-in_progress {
+        background: linear-gradient(135deg, #ffc107, #e0a800);
+    }
+
+    .task-bar.status-pending {
+        background: linear-gradient(135deg, #17a2b8, #138496);
+    }
+
+    .task-bar.status-completed {
+        background: linear-gradient(135deg, #28a745, #1e7e34);
+    }
+
+    .task-bar.subtask {
+        height: 16px;
+        opacity: 0.8;
+    }
+
+    .dependency-line {
+        position: absolute;
+        border: 1px solid #dc3545;
+        z-index: 5;
+    }
+
+    .milestone {
+        width: 0;
+        height: 0;
+        border-left: 8px solid transparent;
+        border-right: 8px solid transparent;
+        border-bottom: 12px solid #dc3545;
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+    .progress-indicator {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.3);
+        border-radius: 4px;
+        transition: width 0.3s ease;
+    }
+
+    .export-controls {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .legend {
+        display: flex;
+        gap: 20px;
+        margin: 15px 0;
+        flex-wrap: wrap;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 0.9em;
+    }
+
+    .legend-color {
+        width: 20px;
+        height: 12px;
+        border-radius: 2px;
+    }
+
+    @media (max-width: 768px) {
+        .gantt-sidebar {
+            min-width: 250px;
+        }
+
+        .task-info {
+            min-width: 250px;
+        }
+
+        .timeline-day {
+            min-width: 25px;
+        }
+
+        .export-controls {
+            flex-direction: column;
+            gap: 5px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- 页面标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h3 mb-1">{{ project.name }}</h1>
+            <p class="text-muted mb-0">施工进度甘特图</p>
+        </div>
+        <div class="export-controls">
+            <button type="button" class="btn btn-success" onclick="exportToPDF()">
+                <i class="fas fa-file-pdf"></i> 导出PDF
+            </button>
+            <a href="{% url 'projects:project_detail' project.pk %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> 返回项目
+            </a>
+        </div>
+    </div>
+
+    <!-- 项目信息卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">项目周期</h5>
+                    <p class="card-text">
+                        <strong>{{ total_days }}</strong> 天<br>
+                        <small class="text-muted">{{ project.start_date }} 至 {{ project.end_date }}</small>
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">工地数量</h5>
+                    <p class="card-text">
+                        <strong>{{ worksites.count }}</strong> 个<br>
+                        <small class="text-muted">施工区域</small>
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">任务总数</h5>
+                    <p class="card-text">
+                        <strong id="total-tasks">-</strong> 个<br>
+                        <small class="text-muted">包含子任务</small>
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h5 class="card-title">整体进度</h5>
+                    <p class="card-text">
+                        <strong id="overall-progress">-</strong>%<br>
+                        <small class="text-muted">完成情况</small>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 状态图例 -->
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-color" style="background: linear-gradient(135deg, #6c757d, #495057);"></div>
+            <span>开放</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: linear-gradient(135deg, #ffc107, #e0a800);"></div>
+            <span>进行中</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: linear-gradient(135deg, #17a2b8, #138496);"></div>
+            <span>待处理</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background: linear-gradient(135deg, #28a745, #1e7e34);"></div>
+            <span>已完成</span>
+        </div>
+        <div class="legend-item">
+            <div class="milestone"></div>
+            <span>里程碑</span>
+        </div>
+    </div>
+
+    <!-- 甘特图容器 -->
+    <div class="gantt-container">
+        <div class="gantt-header">
+            <div>
+                <h5 class="mb-1">{{ project.name }} - 施工进度表</h5>
+                <small class="text-muted">更新时间: {{ today|date:"Y年m月d日" }}</small>
+            </div>
+            <div>
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="refreshGantt()">
+                    <i class="fas fa-sync-alt"></i> 刷新
+                </button>
+            </div>
+        </div>
+
+        <div class="gantt-timeline-container" style="overflow-x: auto;">
+            <!-- 表头行 -->
+            <div class="gantt-row" style="position: sticky; top: 0; z-index: 20; background: white;">
+                <div class="task-info" style="background: #e9ecef; font-weight: bold;">
+                    任务信息
+                </div>
+                <div class="timeline-header" id="timeline-header">
+                    <!-- 时间轴将通过JavaScript动态生成 -->
+                </div>
+            </div>
+
+            <!-- 甘特图内容容器 -->
+            <div class="gantt-timeline" id="gantt-timeline">
+                <!-- 任务行将通过JavaScript动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 页脚信息 -->
+    <div class="mt-4 p-3 bg-light rounded">
+        <div class="row">
+            <div class="col-md-6">
+                <h6>任务状态说明</h6>
+                <ul class="list-unstyled small">
+                    <li><strong>开放：</strong>任务已创建，等待开始</li>
+                    <li><strong>进行中：</strong>任务正在执行中</li>
+                    <li><strong>待处理：</strong>任务等待前置条件完成</li>
+                    <li><strong>已完成：</strong>任务已完成</li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h6>报告信息</h6>
+                <ul class="list-unstyled small">
+                    <li><strong>项目名称：</strong>{{ project.name }}</li>
+                    <li><strong>报告日期：</strong>{{ today|date:"Y年m月d日" }}</li>
+                    <li><strong>数据来源：</strong>项目管理系统数据库</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let ganttData = null;
+let projectStart = new Date('{{ project_start|date:"Y-m-d" }}');
+let projectEnd = new Date('{{ project_end|date:"Y-m-d" }}');
+let today = new Date('{{ today|date:"Y-m-d" }}');
+
+// 页面加载时初始化甘特图
+document.addEventListener('DOMContentLoaded', function() {
+    loadGanttData();
+});
+
+// 加载甘特图数据
+async function loadGanttData() {
+    try {
+        const response = await fetch(`{% url 'gantt:gantt_data_api' project.pk %}`);
+        ganttData = await response.json();
+
+        renderGanttChart();
+        updateStatistics();
+    } catch (error) {
+        console.error('加载甘特图数据失败:', error);
+        showError('加载数据失败，请刷新页面重试');
+    }
+}
+
+// 渲染甘特图
+function renderGanttChart() {
+    if (!ganttData) return;
+
+    renderTimelineHeader();
+    renderTaskRows();
+    renderDependencies();
+}
+
+// 渲染时间轴表头
+function renderTimelineHeader() {
+    const header = document.getElementById('timeline-header');
+    header.innerHTML = '';
+
+    const totalDays = Math.ceil((projectEnd - projectStart) / (1000 * 60 * 60 * 24)) + 1;
+
+    for (let i = 0; i < totalDays; i++) {
+        const currentDate = new Date(projectStart);
+        currentDate.setDate(projectStart.getDate() + i);
+
+        const dayElement = document.createElement('div');
+        dayElement.className = 'timeline-day';
+
+        // 标记周末
+        if (currentDate.getDay() === 0 || currentDate.getDay() === 6) {
+            dayElement.classList.add('weekend');
+        }
+
+        // 标记今天
+        if (currentDate.toDateString() === today.toDateString()) {
+            dayElement.classList.add('today');
+        }
+
+        dayElement.innerHTML = `
+            <div>${currentDate.getDate()}</div>
+            <div style="font-size: 9px;">${currentDate.toLocaleDateString('zh-CN', {month: 'short'})}</div>
+        `;
+
+        header.appendChild(dayElement);
+    }
+}
+
+// 渲染任务行
+function renderTaskRows() {
+    const ganttContainer = document.getElementById('gantt-timeline');
+    ganttContainer.innerHTML = '';
+
+    // 按工地分组渲染任务
+    ganttData.worksites.forEach(worksite => {
+        // 工地标题行
+        const worksiteRow = document.createElement('div');
+        worksiteRow.className = 'gantt-row';
+
+        const worksiteHeader = document.createElement('div');
+        worksiteHeader.className = 'worksite-header';
+        worksiteHeader.textContent = worksite.name;
+
+        const worksiteTimelineHeader = document.createElement('div');
+        worksiteTimelineHeader.className = 'worksite-timeline-header';
+
+        worksiteRow.appendChild(worksiteHeader);
+        worksiteRow.appendChild(worksiteTimelineHeader);
+        ganttContainer.appendChild(worksiteRow);
+
+        // 获取该工地的所有任务（包括主任务和子任务）
+        const worksiteTasks = ganttData.tasks.filter(task => task.worksite_id === worksite.id);
+
+        // 按主任务分组，然后按层级排序
+        const mainTasks = worksiteTasks.filter(task => !task.parent_task_id);
+
+        mainTasks.forEach(mainTask => {
+            // 渲染主任务
+            renderTaskRow(mainTask);
+
+            // 渲染该主任务的所有子任务
+            const subtasks = worksiteTasks.filter(task => task.parent_task_id === mainTask.id);
+            subtasks.forEach(subtask => {
+                renderTaskRow(subtask);
+            });
+        });
+
+        // 渲染没有父任务但也不是主任务的任务（如果有的话）
+        const orphanTasks = worksiteTasks.filter(task =>
+            !task.parent_task_id && !mainTasks.find(mt => mt.id === task.id)
+        );
+        orphanTasks.forEach(task => {
+            renderTaskRow(task);
+        });
+    });
+}
+
+// 渲染单个任务行
+function renderTaskRow(task) {
+    const isSubtask = task.parent_task_id !== null;
+
+    // 创建任务行容器
+    const taskRow = document.createElement('div');
+    taskRow.className = 'gantt-row';
+
+    // 任务信息部分
+    const taskInfo = document.createElement('div');
+    taskInfo.className = 'task-info';
+
+    const taskName = document.createElement('div');
+    taskName.className = `task-name ${isSubtask ? 'subtask' : ''}`;
+    taskName.textContent = task.name;
+
+    const taskDetails = document.createElement('div');
+    taskDetails.className = 'task-details';
+    taskDetails.innerHTML = `
+        ${task.responsible_person} | ${getStatusDisplay(task.status)}<br>
+        ${task.start_date} ~ ${task.end_date}
+        ${task.subtasks_count > 0 ? ` | ${task.completed_subtasks}/${task.subtasks_count} 子任务` : ''}
+    `;
+
+    taskInfo.appendChild(taskName);
+    taskInfo.appendChild(taskDetails);
+
+    // 任务时间轴部分
+    const taskTimeline = document.createElement('div');
+    taskTimeline.className = 'task-timeline';
+
+    const taskBar = createTaskBar(task);
+    taskTimeline.appendChild(taskBar);
+
+    // 组装任务行
+    taskRow.appendChild(taskInfo);
+    taskRow.appendChild(taskTimeline);
+
+    // 添加到甘特图容器
+    const ganttContainer = document.getElementById('gantt-timeline');
+    ganttContainer.appendChild(taskRow);
+}
+
+// 创建任务条
+function createTaskBar(task) {
+    const startDate = new Date(task.start_date);
+    const endDate = new Date(task.end_date);
+
+    // 计算位置和宽度
+    const totalDays = Math.ceil((projectEnd - projectStart) / (1000 * 60 * 60 * 24)) + 1;
+    const startOffset = Math.ceil((startDate - projectStart) / (1000 * 60 * 60 * 24));
+    const duration = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+
+    const dayWidth = 30; // 每天的宽度
+    const left = startOffset * dayWidth;
+    const width = duration * dayWidth;
+
+    const taskBar = document.createElement('div');
+    taskBar.className = `task-bar status-${task.status} ${task.parent_task_id ? 'subtask' : ''}`;
+    taskBar.style.left = `${left}px`;
+    taskBar.style.width = `${width}px`;
+
+    // 任务名称（如果宽度足够）
+    if (width > 80) {
+        taskBar.textContent = task.name.length > 15 ? task.name.substring(0, 15) + '...' : task.name;
+    }
+
+    // 进度指示器
+    if (task.progress > 0) {
+        const progressBar = document.createElement('div');
+        progressBar.className = 'progress-indicator';
+        progressBar.style.width = `${task.progress}%`;
+        taskBar.appendChild(progressBar);
+    }
+
+    // 添加工具提示
+    taskBar.title = `${task.name}\n状态: ${getStatusDisplay(task.status)}\n进度: ${task.progress}%\n负责人: ${task.responsible_person}\n时间: ${task.start_date} ~ ${task.end_date}`;
+
+    return taskBar;
+}
+
+// 渲染依赖关系
+function renderDependencies() {
+    // 这里可以添加依赖关系的可视化
+    // 由于复杂性，暂时跳过，可以在后续版本中添加
+}
+
+// 获取状态显示文本
+function getStatusDisplay(status) {
+    const statusMap = {
+        'open': '开放',
+        'in_progress': '进行中',
+        'pending': '待处理',
+        'completed': '已完成'
+    };
+    return statusMap[status] || status;
+}
+
+// 更新统计信息
+function updateStatistics() {
+    if (!ganttData) return;
+
+    const totalTasks = ganttData.tasks.length;
+    const completedTasks = ganttData.tasks.filter(task => task.status === 'completed').length;
+    const overallProgress = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+    document.getElementById('total-tasks').textContent = totalTasks;
+    document.getElementById('overall-progress').textContent = overallProgress;
+}
+
+// 刷新甘特图
+function refreshGantt() {
+    loadGanttData();
+}
+
+// 导出PDF
+function exportToPDF() {
+    const exportBtn = document.querySelector('button[onclick="exportToPDF()"]');
+    const originalText = exportBtn.innerHTML;
+
+    exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> 导出中...';
+    exportBtn.disabled = true;
+
+    // 创建一个隐藏的链接来下载PDF
+    const link = document.createElement('a');
+    link.href = `{% url 'gantt:export_gantt_pdf' project.pk %}`;
+    link.download = `{{ project.name }}_施工进度表_{{ today|date:"Ymd" }}.pdf`;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // 恢复按钮状态
+    setTimeout(() => {
+        exportBtn.innerHTML = originalText;
+        exportBtn.disabled = false;
+    }, 2000);
+}
+
+// 显示错误信息
+function showError(message) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+
+    const container = document.querySelector('.container-fluid');
+    container.insertBefore(alertDiv, container.firstChild);
+
+    // 5秒后自动消失
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

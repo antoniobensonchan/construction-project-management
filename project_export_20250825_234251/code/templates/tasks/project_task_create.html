@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+
+{% block title %}创建任务 - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <!-- 面包屑导航 -->
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'projects:project_list' %}">项目列表</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'projects:project_detail' project.pk %}">{{ project.name }}</a></li>
+                    <li class="breadcrumb-item active">创建任务</li>
+                </ol>
+            </nav>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-plus"></i> 创建新任务
+                    </h4>
+                    <small class="text-muted">项目：{{ project.name }}</small>
+                </div>
+                
+                <div class="card-body">
+                    <form method="post" id="task-create-form">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">
+                                <i class="fas fa-tag"></i> {{ form.name.label }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                                <div class="text-danger small">{{ form.name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">
+                                <i class="fas fa-align-left"></i> {{ form.description.label }}
+                            </label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="text-danger small">{{ form.description.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.task_type.id_for_label }}" class="form-label">
+                                        <i class="fas fa-cogs"></i> {{ form.task_type.label }} <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.task_type }}
+                                    {% if form.task_type.errors %}
+                                        <div class="text-danger small">{{ form.task_type.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.responsible_person.id_for_label }}" class="form-label">
+                                        <i class="fas fa-user"></i> {{ form.responsible_person.label }} <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.responsible_person }}
+                                    {% if form.responsible_person.errors %}
+                                        <div class="text-danger small">{{ form.responsible_person.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.deadline.id_for_label }}" class="form-label">
+                                <i class="fas fa-calendar"></i> {{ form.deadline.label }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.deadline }}
+                            {% if form.deadline.errors %}
+                                <div class="text-danger small">{{ form.deadline.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- 关联图纸选择 -->
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-file-image"></i> {{ form.drawings.label }}
+                            </label>
+                            {% if project.drawings.exists %}
+                                <div class="row">
+                                    {% for drawing in form.drawings.field.queryset %}
+                                    <div class="col-md-6 mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" 
+                                                   name="drawings" value="{{ drawing.pk }}" 
+                                                   id="drawing_{{ drawing.pk }}">
+                                            <label class="form-check-label" for="drawing_{{ drawing.pk }}">
+                                                <i class="fas fa-file-image text-primary"></i>
+                                                {{ drawing.name }}
+                                                <small class="text-muted d-block">
+                                                    上传于 {{ drawing.uploaded_at|date:"Y-m-d" }}
+                                                </small>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                                <div class="form-text">选择与此任务相关的图纸（可选）</div>
+                            {% else %}
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle"></i>
+                                    该项目还没有图纸。
+                                    <a href="{% url 'drawings:project_drawing_upload' project.pk %}" class="alert-link">
+                                        点击这里上传图纸
+                                    </a>
+                                </div>
+                            {% endif %}
+                            {% if form.drawings.errors %}
+                                <div class="text-danger small">{{ form.drawings.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'projects:project_detail' project.pk %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> 返回项目
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> 创建任务
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- 创建提示 -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-lightbulb"></i> 任务创建提示</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>任务创建后您可以：</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-check text-success"></i> 在关联图纸上添加标注（点、线条、文字）</li>
+                                <li><i class="fas fa-check text-success"></i> 编辑任务信息和状态</li>
+                                <li><i class="fas fa-check text-success"></i> 管理任务进度</li>
+                                <li><i class="fas fa-check text-success"></i> 查看任务详情</li>
+                            </ul>
+                            <div class="alert alert-info mt-3">
+                                <i class="fas fa-info-circle"></i>
+                                <strong>标注功能：</strong>任务创建后，点击"编辑"按钮即可在关联图纸上添加各种标注，包括点标记、线条标注和文字说明。
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>注意事项：</h6>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-info-circle text-info"></i> 任务名称应该简洁明确</li>
+                                <li><i class="fas fa-info-circle text-info"></i> 合理设置截止时间</li>
+                                <li><i class="fas fa-info-circle text-info"></i> 可以关联多张图纸</li>
+                                <li><i class="fas fa-info-circle text-info"></i> 任务创建后可以随时编辑</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 表单验证
+    const form = document.getElementById('task-create-form');
+    const deadlineInput = document.getElementById('{{ form.deadline.id_for_label }}');
+    
+    // 截止时间验证
+    function validateDeadline() {
+        const deadline = new Date(deadlineInput.value);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        if (deadline < today) {
+            deadlineInput.setCustomValidity('截止时间不能早于今天');
+        } else {
+            deadlineInput.setCustomValidity('');
+        }
+    }
+    
+    deadlineInput.addEventListener('change', validateDeadline);
+    
+    // 表单提交前验证
+    form.addEventListener('submit', function(e) {
+        validateDeadline();
+        if (!form.checkValidity()) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        form.classList.add('was-validated');
+    });
+    
+    console.log('Project task create page loaded');
+    console.log('Project ID: {{ project.id }}');
+    console.log('Available drawings: {{ project.drawings.count }}');
+});
+</script>
+{% endblock %}

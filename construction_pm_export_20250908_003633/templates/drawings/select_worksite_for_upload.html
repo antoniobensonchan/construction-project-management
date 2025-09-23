@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+
+{% block title %}选择工地上传图纸 - {{ project.name }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="page-title">选择工地上传图纸</h1>
+                <p class="page-subtitle">
+                    <a href="{% url 'projects:project_detail' project.pk %}" class="text-decoration-none">
+                        {{ project.name }}
+                    </a> / 选择工地
+                </p>
+            </div>
+            <a href="{% url 'projects:project_detail' project.pk %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>返回项目
+            </a>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-industry me-2"></i>请选择要上传图纸的工地
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-4">
+                    由于图纸现在按工地组织，请选择要上传图纸的具体工地：
+                </p>
+
+                <div class="row">
+                    {% for worksite in worksites %}
+                    <div class="col-md-6 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h6 class="card-title">
+                                        <i class="fas fa-industry me-2"></i>{{ worksite.name }}
+                                    </h6>
+                                    <span class="badge bg-{% if worksite.status == 'active' %}success{% elif worksite.status == 'preparing' %}warning{% elif worksite.status == 'completed' %}info{% else %}secondary{% endif %}">
+                                        {{ worksite.get_status_display }}
+                                    </span>
+                                </div>
+
+                                {% if worksite.description %}
+                                <p class="card-text text-muted small">{{ worksite.description|truncatechars:80 }}</p>
+                                {% endif %}
+
+                                <div class="row text-center mb-3">
+                                    <div class="col-6">
+                                        <small class="text-muted">现有图纸</small>
+                                        <div class="fw-bold">{{ worksite.drawings.count }}</div>
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted">任务数量</small>
+                                        <div class="fw-bold">{{ worksite.tasks.count }}</div>
+                                    </div>
+                                </div>
+
+                                <a href="{% url 'drawings:worksite_drawing_upload' worksite.pk %}" class="btn btn-primary w-100">
+                                    <i class="fas fa-upload me-2"></i>在此工地上传图纸
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header">
+                <h6 class="mb-0 text-info">
+                    <i class="fas fa-info-circle me-2"></i>为什么要选择工地？
+                </h6>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-2">
+                    在新的数据结构中，图纸按工地组织，这样可以：
+                </p>
+                <ul class="text-muted small">
+                    <li>更好地组织和管理图纸文件</li>
+                    <li>让任务与相关图纸更紧密关联</li>
+                    <li>支持大型项目的多工地管理</li>
+                    <li>提供更清晰的权限控制</li>
+                </ul>
+                <p class="text-muted small mt-3">
+                    <i class="fas fa-lightbulb me-1"></i>
+                    <strong>提示：</strong>如果您不确定选择哪个工地，可以根据图纸的用途选择最相关的工地。
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

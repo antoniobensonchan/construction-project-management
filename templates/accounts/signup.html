@@ -1,0 +1,220 @@
+{% extends 'base.html' %}
+
+{% block title %}注册 - 建筑项目管理系统{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 2rem 0;
+        padding-top: 2rem; /* 注册页面保持适当的顶部边距 */
+    }
+
+    .auth-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        padding: 3rem;
+        width: 100%;
+        max-width: 450px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .auth-logo {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .auth-logo i {
+        font-size: 3rem;
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+    }
+
+    .auth-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        text-align: center;
+        margin-bottom: 0.5rem;
+        color: var(--text-primary);
+    }
+
+    .auth-subtitle {
+        text-align: center;
+        color: var(--text-secondary);
+        margin-bottom: 2rem;
+    }
+
+    .form-floating {
+        margin-bottom: 1rem;
+    }
+
+    .form-floating .form-control {
+        height: 3.5rem;
+        border-radius: 12px;
+        border: 2px solid var(--border-color);
+        background: rgba(255, 255, 255, 0.8);
+    }
+
+    .form-floating .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+    }
+
+    .btn-auth {
+        height: 3.5rem;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 1.1rem;
+        width: 100%;
+        margin-bottom: 1rem;
+    }
+
+    .auth-divider {
+        text-align: center;
+        margin: 2rem 0;
+        position: relative;
+    }
+
+    .auth-divider::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: var(--border-color);
+    }
+
+    .auth-divider span {
+        background: rgba(255, 255, 255, 0.95);
+        padding: 0 1rem;
+        color: var(--text-secondary);
+    }
+
+    .auth-link {
+        text-align: center;
+        margin-top: 1rem;
+    }
+
+    .auth-link a {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .auth-link a:hover {
+        text-decoration: underline;
+    }
+
+    .form-text {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-logo">
+            <i class="fas fa-user-plus"></i>
+            <h1 class="auth-title">创建账户</h1>
+            <p class="auth-subtitle">开始您的项目管理之旅</p>
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="form-floating">
+                {{ form.username }}
+                <label for="{{ form.username.id_for_label }}">用户名</label>
+                {% if form.username.errors %}
+                    <div class="form-text text-danger">
+                        {% for error in form.username.errors %}{{ error }}{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="form-floating">
+                {{ form.email }}
+                <label for="{{ form.email.id_for_label }}">邮箱地址</label>
+                {% if form.email.errors %}
+                    <div class="form-text text-danger">
+                        {% for error in form.email.errors %}{{ error }}{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="form-floating">
+                {{ form.company_name }}
+                <label for="{{ form.company_name.id_for_label }}">公司名称</label>
+                {% if form.company_name.errors %}
+                    <div class="form-text text-danger">
+                        {% for error in form.company_name.errors %}{{ error }}{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="form-floating">
+                {{ form.phone }}
+                <label for="{{ form.phone.id_for_label }}">联系电话（可选）</label>
+                {% if form.phone.errors %}
+                    <div class="form-text text-danger">
+                        {% for error in form.phone.errors %}{{ error }}{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="form-floating">
+                {{ form.password1 }}
+                <label for="{{ form.password1.id_for_label }}">密码</label>
+                {% if form.password1.errors %}
+                    <div class="form-text text-danger">
+                        {% for error in form.password1.errors %}{{ error }}{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="form-floating">
+                {{ form.password2 }}
+                <label for="{{ form.password2.id_for_label }}">确认密码</label>
+                {% if form.password2.errors %}
+                    <div class="form-text text-danger">
+                        {% for error in form.password2.errors %}{{ error }}{% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger" role="alert">
+                    {% for error in form.non_field_errors %}
+                        <i class="fas fa-exclamation-circle me-2"></i>{{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <button type="submit" class="btn btn-primary btn-auth">
+                <i class="fas fa-user-plus me-2"></i>
+                创建账户
+            </button>
+        </form>
+
+        <div class="auth-divider">
+            <span>已有账户？</span>
+        </div>
+
+        <div class="auth-link">
+            <a href="{% url 'accounts:login' %}">
+                <i class="fas fa-sign-in-alt me-1"></i>
+                立即登录
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+
+{% block title %}项目列表 - 建筑项目管理系统{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- 页面标题 -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h1 class="page-title">我的项目</h1>
+                    <p class="page-subtitle">管理您的建筑项目</p>
+                </div>
+                <a href="{% url 'projects:project_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> 新建项目
+                </a>
+            </div>
+
+            <!-- 项目统计卡片 -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4>{{ projects.count }}</h4>
+                                    <p class="mb-0">总项目数</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-building fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4>{{ projects|length|add:"-1" }}</h4>
+                                    <p class="mb-0">进行中</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-play fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4>0</h4>
+                                    <p class="mb-0">即将到期</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-clock fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h4>0</h4>
+                                    <p class="mb-0">已完成</p>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-check fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 项目列表 -->
+            {% if projects %}
+                <div class="row">
+                    {% for project in projects %}
+                    <div class="col-lg-6 col-xl-4 mb-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="mb-0">{{ project.name }}</h5>
+                                <span class="badge bg-{% if project.status == 'active' %}success{% elif project.status == 'planning' %}warning{% elif project.status == 'completed' %}info{% else %}secondary{% endif %}">
+                                    {{ project.get_status_display }}
+                                </span>
+                            </div>
+
+                            <div class="card-body">
+                                <p class="text-muted small mb-3">{{ project.description|truncatechars:80 }}</p>
+
+                                <div class="row text-center mb-3">
+                                    <div class="col-4">
+                                        <div class="border-end">
+                                            <h6 class="mb-0">{{ project.drawings.count }}</h6>
+                                            <small class="text-muted">图纸</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="border-end">
+                                            <h6 class="mb-0">{{ project.tasks.count }}</h6>
+                                            <small class="text-muted">任务</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <h6 class="mb-0">{{ project.progress_percentage }}%</h6>
+                                        <small class="text-muted">进度</small>
+                                    </div>
+                                </div>
+
+                                <div class="progress mb-3" style="height: 6px;">
+                                    <div class="progress-bar bg-{% if project.progress_percentage < 30 %}danger{% elif project.progress_percentage < 70 %}warning{% else %}success{% endif %}"
+                                         style="width: {{ project.progress_percentage }}%"></div>
+                                </div>
+
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">
+                                        <i class="fas fa-calendar"></i>
+                                        {{ project.start_date|date:"Y-m-d" }} ~ {{ project.end_date|date:"Y-m-d" }}
+                                    </small>
+                                </div>
+                            </div>
+
+                            <div class="card-footer">
+                                <div class="btn-group w-100" role="group">
+                                    <a href="{% url 'projects:project_detail' project.pk %}" class="btn btn-primary">
+                                        <i class="fas fa-eye"></i> 进入项目
+                                    </a>
+                                    <a href="{% url 'projects:project_update' project.pk %}" class="btn btn-outline-success">
+                                        <i class="fas fa-edit"></i> 编辑
+                                    </a>
+                                    <a href="{% url 'projects:project_delete' project.pk %}" class="btn btn-outline-danger"
+                                       onclick="return confirm('确认删除项目「{{ project.name }}」？此操作将删除所有相关数据！')">
+                                        <i class="fas fa-trash"></i> 删除
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-building fa-5x text-muted mb-4"></i>
+                    <h4>还没有项目</h4>
+                    <p class="text-muted mb-4">创建您的第一个建筑项目，开始管理图纸和任务</p>
+                    <a href="{% url 'projects:project_create' %}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-plus"></i> 创建第一个项目
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

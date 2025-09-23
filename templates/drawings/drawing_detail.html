@@ -1,0 +1,693 @@
+{% extends 'base.html' %}
+{% load drawing_extras %}
+
+{% block title %}{{ drawing.name }} - 图纸预览{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- PDF预览区域 (70%宽度) -->
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-file-pdf text-danger"></i> {{ drawing.name }}
+                </h5>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="zoom-out">
+                        <i class="fas fa-search-minus"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="zoom-reset">
+                        <i class="fas fa-expand-arrows-alt"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="zoom-in">
+                        <i class="fas fa-search-plus"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div id="pdf-container" style="height: 400px; overflow: auto; position: relative;">
+                    <div id="pdf-loading" class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                        <p class="mt-2">正在加载图纸（<span id="current-page">1</span>/{{ drawing.page_count }} 页）</p>
+                        <button class="btn btn-sm btn-outline-primary mt-2" id="refresh-pdf" style="display: none;">
+                            <i class="fas fa-sync-alt"></i> 刷新
+                        </button>
+                    </div>
+                    <!-- PDF查看器 -->
+                    <embed id="pdf-viewer"
+                           src="{{ drawing.file.url }}"
+                           type="application/pdf"
+                           width="100%"
+                           height="400px"
+                           style="display: none;">
+
+                    <!-- 图片查看器 -->
+                    <img id="image-viewer"
+                         src="{{ drawing.file.url }}"
+                         style="width: 100%; max-height: 400px; object-fit: contain; object-position: left top; display: none;"
+                         alt="{{ drawing.name }}">
+
+                    <!-- 标注层 -->
+                    <div id="annotation-layer"
+                         style="position: absolute; top: 0; left: 0; width: 100%; height: 400px; z-index: 2; pointer-events: none;">
+                        <!-- 标注将在这里显示 -->
+                    </div>
+
+                    <div id="pdf-error" class="text-center py-5" style="display: none;">
+                        <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                        <h5>文件加载失败</h5>
+                        <p class="text-muted">请刷新页面重试，或下载文件本地查看</p>
+                        <div class="d-flex justify-content-center gap-2">
+                            <button class="btn btn-primary" id="retry-load">
+                                <i class="fas fa-sync-alt"></i> 刷新页面
+                            </button>
+                            <a href="{{ drawing.file.url }}" class="btn btn-success" download>
+                                <i class="fas fa-download"></i> 下载文件
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 页码导航 -->
+                {% if drawing.page_count > 1 %}
+                <div class="card-footer bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <button class="btn btn-sm btn-outline-secondary" id="prev-page" disabled>
+                            <i class="fas fa-chevron-left"></i> 上一页
+                        </button>
+
+                        <div class="d-flex align-items-center gap-2">
+                            <span>第</span>
+                            <select class="form-select form-select-sm" id="page-select" style="width: auto;">
+                                {% for page_num in drawing.page_count|range_from:1 %}
+                                <option value="{{ page_num }}" {% if page_num == 1 %}selected{% endif %}>{{ page_num }}</option>
+                                {% endfor %}
+                            </select>
+                            <span>页，共 {{ drawing.page_count }} 页</span>
+                        </div>
+
+                        <button class="btn btn-sm btn-outline-secondary" id="next-page" {% if drawing.page_count == 1 %}disabled{% endif %}>
+                            下一页 <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 图纸信息栏 (30%宽度) -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-info-circle"></i> 图纸信息
+                </h5>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-4">文件名：</dt>
+                    <dd class="col-sm-8">{{ drawing.name }}</dd>
+
+                    {% if worksite %}
+                    <dt class="col-sm-4">所属工地：</dt>
+                    <dd class="col-sm-8">
+                        <a href="{% url 'projects:worksite_detail' worksite.pk %}" class="text-decoration-none">
+                            {{ worksite.name }}
+                        </a>
+                    </dd>
+                    {% endif %}
+
+                    {% if project %}
+                    <dt class="col-sm-4">所属项目：</dt>
+                    <dd class="col-sm-8">
+                        <a href="{% url 'projects:project_detail' project.pk %}" class="text-decoration-none">
+                            {{ project.name }}
+                        </a>
+                    </dd>
+                    {% endif %}
+
+                    <dt class="col-sm-4">文件大小：</dt>
+                    <dd class="col-sm-8">{{ drawing.file_size_mb }} MB</dd>
+
+                    <dt class="col-sm-4">上传时间：</dt>
+                    <dd class="col-sm-8">{{ drawing.uploaded_at|date:"Y-m-d H:i:s" }}</dd>
+
+                    <dt class="col-sm-4">更新时间：</dt>
+                    <dd class="col-sm-8">{{ drawing.updated_at|date:"Y-m-d H:i:s" }}</dd>
+                </dl>
+
+                <hr>
+
+                <!-- 操作按钮 -->
+                <div class="d-grid gap-2">
+                    {% if worksite %}
+                    <a href="{% url 'tasks:worksite_task_create' worksite.pk %}"
+                       class="btn btn-orange">
+                        <i class="fas fa-plus"></i> 在此工地创建任务
+                    </a>
+                    {% endif %}
+
+                    <a href="{{ drawing.file.url }}"
+                       class="btn btn-success"
+                       download="{{ drawing.name }}.pdf">
+                        <i class="fas fa-download"></i> 下载PDF文件
+                    </a>
+
+                    {% if worksite %}
+                    <a href="{% url 'projects:worksite_detail' worksite.pk %}"
+                       class="btn btn-primary">
+                        <i class="fas fa-arrow-left"></i> 返回工地
+                    </a>
+                    {% if project %}
+                    <a href="{% url 'projects:project_detail' project.pk %}"
+                       class="btn btn-outline-primary">
+                        <i class="fas fa-folder"></i> 查看项目
+                    </a>
+                    {% endif %}
+                    {% else %}
+                    <a href="{% url 'drawings:drawing_list' %}"
+                       class="btn btn-primary">
+                        <i class="fas fa-arrow-left"></i> 返回列表
+                    </a>
+                    {% endif %}
+
+                    <a href="{% url 'drawings:drawing_delete' drawing.pk %}"
+                       class="btn btn-danger">
+                        <i class="fas fa-trash"></i> 删除图纸
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 关联任务 -->
+        {% if related_tasks.exists %}
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="fas fa-tasks"></i> 关联任务 ({{ related_tasks.count }})
+                </h6>
+            </div>
+            <div class="card-body">
+                {% for task in related_tasks %}
+                <div class="border-bottom pb-3 mb-3 task-item"
+                     data-task-id="{{ task.pk }}"
+                     onmouseover="highlightTaskAnnotations({{ task.pk }})"
+                     onmouseout="unhighlightAllAnnotations()">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">{{ task.name }}</h6>
+                            <small class="text-muted">
+                                <span class="badge bg-{% if task.status == 'completed' %}success{% elif task.status == 'in_progress' %}warning{% elif task.status == 'pending' %}secondary{% else %}danger{% endif %}">
+                                    {{ task.get_status_display }}
+                                </span>
+                                <span class="badge bg-info">{{ task.get_task_type_display }}</span>
+                                <br>负责人：{{ task.responsible_person }}
+                                <br>截止：{{ task.deadline|date:"Y-m-d" }}
+                                {% if task.worksite %}
+                                <br>工地：{{ task.worksite.name }}
+                                {% if task.worksite.project %}
+                                <br>项目：{{ task.worksite.project.name }}
+                                {% endif %}
+                                {% endif %}
+                            </small>
+                        </div>
+                        <div class="btn-group-vertical btn-group-sm ms-2">
+                            <a href="{% url 'tasks:task_detail' task.pk %}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-eye"></i> 查看
+                            </a>
+                            <a href="{% url 'tasks:task_update' task.pk %}" class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-edit"></i> 编辑
+                            </a>
+                            <a href="{% url 'tasks:task_delete' task.pk %}" class="btn btn-outline-danger btn-sm"
+                               onclick="return confirm('确认删除任务「{{ task.name }}」？')">
+                                <i class="fas fa-trash"></i> 删除
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const pdfViewer = document.getElementById('pdf-viewer');
+    const imageViewer = document.getElementById('image-viewer');
+    const pdfLoading = document.getElementById('pdf-loading');
+    const pdfError = document.getElementById('pdf-error');
+    const pdfContainer = document.getElementById('pdf-container');
+    const refreshBtn = document.getElementById('refresh-pdf');
+    const retryBtn = document.getElementById('retry-load');
+
+    let currentZoom = 1;
+    let totalPages = {{ drawing.page_count }};
+    let loadRetryCount = 0;
+    const maxRetries = 2;
+    const fileType = "{{ drawing.file_type }}";
+
+    // 页码控制元素
+    const prevPageBtn = document.getElementById('prev-page');
+    const nextPageBtn = document.getElementById('next-page');
+    const pageSelect = document.getElementById('page-select');
+
+    // 根据文件类型显示对应的查看器
+    if (fileType === 'pdf') {
+        // PDF文件处理
+        pdfViewer.addEventListener('load', function() {
+            pdfLoading.style.display = 'none';
+            pdfViewer.style.display = 'block';
+            loadRetryCount = 0;
+        });
+
+        pdfViewer.addEventListener('error', function() {
+            handleLoadError();
+        });
+    } else {
+        // 图片文件处理
+        imageViewer.addEventListener('load', function() {
+            pdfLoading.style.display = 'none';
+            imageViewer.style.display = 'block';
+            loadRetryCount = 0;
+
+            // 图片加载完成后渲染标注
+            console.log('📷 Image loaded, initializing annotations...');
+            setTimeout(() => {
+                if (typeof initializeAnnotations === 'function') {
+                    initializeAnnotations();
+                } else {
+                    console.error('❌ initializeAnnotations function not found');
+                }
+            }, 500);
+        });
+
+        imageViewer.addEventListener('error', function() {
+            handleLoadError();
+        });
+    }
+
+    // 处理加载错误
+    function handleLoadError() {
+        if (loadRetryCount < maxRetries) {
+            loadRetryCount++;
+            refreshBtn.style.display = 'inline-block';
+            setTimeout(() => {
+                reloadPdf();
+            }, 1000);
+        } else {
+            pdfLoading.style.display = 'none';
+            pdfError.style.display = 'block';
+        }
+    }
+
+    // 重新加载PDF
+    function reloadPdf() {
+        pdfViewer.src = pdfViewer.src + '?t=' + new Date().getTime();
+        refreshBtn.style.display = 'none';
+    }
+
+    // 刷新按钮事件
+    refreshBtn.addEventListener('click', reloadPdf);
+    retryBtn.addEventListener('click', () => location.reload());
+
+    // 页码导航功能
+    if (totalPages > 1) {
+        // 上一页
+        prevPageBtn.addEventListener('click', function() {
+            if (currentPage > 1) {
+                currentPage--;
+                updatePage();
+            }
+        });
+
+        // 下一页
+        nextPageBtn.addEventListener('click', function() {
+            if (currentPage < totalPages) {
+                currentPage++;
+                updatePage();
+            }
+        });
+
+        // 页码选择
+        pageSelect.addEventListener('change', function() {
+            currentPage = parseInt(this.value);
+            updatePage();
+        });
+
+        // 更新页面显示
+        function updatePage() {
+            // 更新PDF显示（通过URL参数指定页码）
+            const baseUrl = '{{ drawing.file.url }}';
+            pdfViewer.src = `${baseUrl}#page=${currentPage}`;
+
+            // 更新页码选择器
+            pageSelect.value = currentPage;
+
+            // 更新按钮状态
+            prevPageBtn.disabled = currentPage === 1;
+            nextPageBtn.disabled = currentPage === totalPages;
+
+            // 更新加载提示中的页码
+            document.getElementById('current-page').textContent = currentPage;
+
+            // 重新渲染当前页面的标注
+            setTimeout(renderAnnotations, 500);
+        }
+    }
+
+    // 缩放控制
+    document.getElementById('zoom-in').addEventListener('click', function() {
+        if (currentZoom < 2) {
+            currentZoom += 0.25;
+            updateZoom();
+        }
+    });
+
+    document.getElementById('zoom-out').addEventListener('click', function() {
+        if (currentZoom > 0.5) {
+            currentZoom -= 0.25;
+            updateZoom();
+        }
+    });
+
+    document.getElementById('zoom-reset').addEventListener('click', function() {
+        currentZoom = 1;
+        updateZoom();
+    });
+
+    function updateZoom() {
+        pdfViewer.style.transform = `scale(${currentZoom})`;
+        pdfViewer.style.transformOrigin = 'top left';
+
+        // 调整容器高度以适应缩放
+        const newHeight = 600 * currentZoom;
+        pdfContainer.style.height = Math.max(600, newHeight) + 'px';
+    }
+
+    // 鼠标滚轮缩放（按住Ctrl键）
+    pdfContainer.addEventListener('wheel', function(e) {
+        if (e.ctrlKey) {
+            e.preventDefault();
+            if (e.deltaY < 0 && currentZoom < 2) {
+                currentZoom += 0.1;
+                updateZoom();
+            } else if (e.deltaY > 0 && currentZoom > 0.5) {
+                currentZoom -= 0.1;
+                updateZoom();
+            }
+        }
+    });
+
+    // 键盘导航
+    document.addEventListener('keydown', function(e) {
+        if (totalPages > 1) {
+            if (e.key === 'ArrowLeft' && currentPage > 1) {
+                currentPage--;
+                updatePage();
+            } else if (e.key === 'ArrowRight' && currentPage < totalPages) {
+                currentPage++;
+                updatePage();
+            }
+        }
+    });
+
+});
+
+// 全局变量
+let currentPage = 1;
+
+// 标注数据
+const allAnnotations = [
+    {% for annotation in all_annotations %}
+    {
+        id: {{ annotation.id }},
+        type: '{{ annotation.annotation_type }}',
+        page: {{ annotation.page_number }},
+        x: {{ annotation.x_coordinate }},
+        y: {{ annotation.y_coordinate }},
+        {% if annotation.end_x %}end_x: {{ annotation.end_x }},{% endif %}
+        {% if annotation.end_y %}end_y: {{ annotation.end_y }},{% endif %}
+        color: '{{ annotation.color|default:"red" }}',
+        content: '{{ annotation.content|escapejs }}',
+        taskName: '{{ annotation.task.name|escapejs }}',
+        taskId: {{ annotation.task.id }}
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
+
+// 调试：输出标注数据
+console.log('🎯 Loaded annotations data:', allAnnotations);
+
+// 初始化标注显示
+function initializeAnnotations() {
+    console.log('🎯 Initializing annotations display for drawing');
+    console.log('📊 Total annotations:', allAnnotations.length);
+
+    // 等待图片完全加载后再渲染标注
+    const imageViewer = document.getElementById('image-viewer');
+    if (imageViewer && imageViewer.complete && imageViewer.naturalWidth > 0) {
+        // 图片已加载，立即渲染
+        renderAnnotations();
+    } else if (imageViewer) {
+        // 等待图片加载完成
+        imageViewer.addEventListener('load', function() {
+            setTimeout(() => {
+                renderAnnotations();
+            }, 100); // 短暂延迟确保DOM更新完成
+        });
+    } else {
+        // 没有图片，直接渲染
+        renderAnnotations();
+    }
+}
+
+// 渲染所有标注
+function renderAnnotations() {
+    const annotationLayer = document.getElementById('annotation-layer');
+    if (!annotationLayer) {
+        console.log('❌ Annotation layer not found');
+        return;
+    }
+
+    console.log('🎯 Starting to render annotations...');
+    console.log('📊 Total annotations:', allAnnotations.length);
+    console.log('📄 Current page:', currentPage);
+
+    // 清除现有标注
+    annotationLayer.innerHTML = '';
+
+    let renderedCount = 0;
+    allAnnotations.forEach((annotation, index) => {
+        if (annotation.page === currentPage) {
+            console.log(`🎨 Rendering annotation ${index}:`, annotation);
+            renderAnnotation(annotation, annotationLayer, index);
+            renderedCount++;
+        }
+    });
+
+    console.log(`✅ Rendered ${renderedCount} annotations for page ${currentPage}`);
+    console.log('📍 Annotation layer style:', annotationLayer.style.cssText);
+}
+
+// 注释：图纸详情页面现在使用直接坐标，与任务详情页面保持一致
+// 不需要复杂的缩放计算
+
+// 渲染单个标注
+function renderAnnotation(annotation, container, index) {
+    const color = annotation.color || 'red';
+    let element;
+
+    // 直接使用存储的坐标（与任务详情页面一致）
+    const x = annotation.x;
+    const y = annotation.y;
+
+    if (annotation.type === 'point') {
+        element = document.createElement('div');
+        element.className = 'annotation-point';
+        element.style.cssText = `
+            position: absolute;
+            left: ${x - 8}px;
+            top: ${y - 8}px;
+            width: 16px;
+            height: 16px;
+            background-color: ${color};
+            border: 2px solid white;
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 10;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        `;
+        element.title = `${annotation.taskName}: ${annotation.content}`;
+    } else if (annotation.type === 'text') {
+        element = document.createElement('div');
+        element.style.cssText = `
+            position: absolute;
+            left: ${x}px;
+            top: ${y - 16}px;
+            color: red;
+            font-weight: bold;
+            font-size: 12px;
+            background: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            border: 1px solid red;
+            cursor: pointer;
+            pointer-events: auto;
+            max-width: 150px;
+            word-wrap: break-word;
+            z-index: 10;
+        `;
+        element.textContent = annotation.content;
+        element.title = `任务: ${annotation.taskName}`;
+    } else if (annotation.type === 'line' && annotation.end_x && annotation.end_y) {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+
+        // 直接使用存储的坐标
+        const startX = annotation.x;
+        const startY = annotation.y;
+        const endX = annotation.end_x;
+        const endY = annotation.end_y;
+
+        const minX = Math.min(startX, endX);
+        const minY = Math.min(startY, endY);
+        const width = Math.abs(endX - startX) + 10;
+        const height = Math.abs(endY - startY) + 10;
+
+        element = document.createElement('div');
+        element.style.cssText = `
+            position: absolute;
+            left: ${minX - 5}px;
+            top: ${minY - 5}px;
+            width: ${width}px;
+            height: ${height}px;
+            cursor: pointer;
+            z-index: 10;
+        `;
+
+        svg.style.cssText = `width: 100%; height: 100%;`;
+
+        line.setAttribute('x1', startX - minX + 5);
+        line.setAttribute('y1', startY - minY + 5);
+        line.setAttribute('x2', endX - minX + 5);
+        line.setAttribute('y2', endY - minY + 5);
+        line.setAttribute('stroke', color);
+        line.setAttribute('stroke-width', '3');
+        line.setAttribute('data-original-width', '3');
+        line.setAttribute('stroke-linecap', 'round');
+
+        svg.appendChild(line);
+        element.appendChild(svg);
+        element.title = `${annotation.taskName}: ${annotation.content}`;
+    }
+
+    if (element) {
+        // 添加标识属性
+        element.setAttribute('data-annotation-id', annotation.id);
+        element.setAttribute('data-task-id', annotation.taskId);
+        element.setAttribute('data-annotation-index', index);
+        element.setAttribute('data-original-color', color);
+
+        // 添加点击事件，跳转到相关任务
+        element.addEventListener('click', function() {
+            if (confirm(`查看任务「${annotation.taskName}」？`)) {
+                window.open(`/tasks/${annotation.taskId}/`, '_blank');
+            }
+        });
+
+        container.appendChild(element);
+        console.log(`✅ Added ${annotation.type} annotation at (${annotation.x}, ${annotation.y}) with color ${color}`);
+    } else {
+        console.log(`❌ Failed to create element for annotation:`, annotation);
+    }
+}
+
+// 高亮指定任务的标注
+function highlightTaskAnnotations(taskId) {
+    console.log('Highlighting annotations for task:', taskId);
+
+    // 移除所有标注的高亮效果
+    const allAnnotationElements = document.querySelectorAll('#annotation-layer [data-task-id]');
+    allAnnotationElements.forEach(element => {
+        // 只移除高亮效果，不改变标注本身
+        element.style.boxShadow = '';
+        element.style.filter = '';
+
+        // 重置线条的高亮效果
+        const svgLine = element.querySelector('line');
+        if (svgLine) {
+            svgLine.style.filter = '';
+        }
+    });
+
+    // 为指定任务的标注添加黄色背景光晕
+    const taskAnnotationElements = document.querySelectorAll(`#annotation-layer [data-task-id="${taskId}"]`);
+    taskAnnotationElements.forEach(element => {
+        // 检查是否是线条标注
+        const svgLine = element.querySelector('line');
+        if (svgLine) {
+            // 线条标注：添加黄色光晕滤镜
+            svgLine.style.filter = 'drop-shadow(0 0 8px rgba(255, 255, 0, 0.8))';
+        } else {
+            // 点标记和文字标注：添加黄色背景光晕
+            element.style.boxShadow = '0 0 0 6px rgba(255, 255, 0, 0.5)';
+        }
+    });
+
+    // 高亮任务项
+    const taskItems = document.querySelectorAll('.task-item');
+    taskItems.forEach(item => {
+        if (parseInt(item.dataset.taskId) === taskId) {
+            item.style.backgroundColor = '#fff3cd';
+            item.style.border = '2px solid #ffc107';
+            item.style.borderRadius = '5px';
+            item.style.transition = 'all 0.3s ease';
+        } else {
+            item.style.backgroundColor = '';
+            item.style.border = '';
+            item.style.borderRadius = '';
+        }
+    });
+
+    console.log(`Highlighted ${taskAnnotationElements.length} annotations for task ${taskId}`);
+}
+
+// 取消高亮所有标注
+function unhighlightAllAnnotations() {
+    console.log('Unhighlighting all annotations');
+
+    // 移除所有标注的高亮效果
+    const allAnnotationElements = document.querySelectorAll('#annotation-layer [data-task-id]');
+    allAnnotationElements.forEach(element => {
+        // 只移除高亮效果，不改变标注本身
+        element.style.boxShadow = '';
+        element.style.filter = '';
+
+        // 移除线条的高亮效果
+        const svgLine = element.querySelector('line');
+        if (svgLine) {
+            svgLine.style.filter = '';
+        }
+    });
+
+    // 恢复任务项样式
+    const taskItems = document.querySelectorAll('.task-item');
+    taskItems.forEach(item => {
+        item.style.backgroundColor = '';
+        item.style.border = '';
+        item.style.borderRadius = '';
+    });
+}
+
+// 注释：移除了复杂的响应式代码
+// 现在使用图片左对齐的简单方案
+
+</script>
+{% endblock %}

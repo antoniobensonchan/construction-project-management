@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+
+{% block title %}任务管理 - 建筑项目管理系统{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2><i class="fas fa-tasks"></i> 任务管理</h2>
+        <p class="text-muted mb-0">所有工地的任务汇总显示，请在具体工地中创建任务</p>
+    </div>
+</div>
+
+{% if tasks %}
+    <div class="row">
+        {% for task in tasks %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <h5 class="card-title text-truncate" title="{{ task.name }}">
+                                {{ task.name }}
+                            </h5>
+                            <span class="badge bg-secondary">{{ task.get_task_type_display }}</span>
+                        </div>
+
+                        <div class="card-text">
+                            <p class="mb-2">
+                                <i class="fas fa-user"></i>
+                                <strong>负责人：</strong>{{ task.responsible_person }}
+                            </p>
+                            <p class="mb-2">
+                                <i class="fas fa-calendar-alt"></i>
+                                <strong>截止时间：</strong>{{ task.deadline|date:"Y-m-d" }}
+                            </p>
+                            <p class="mb-2">
+                                <i class="fas fa-industry text-primary"></i>
+                                <strong>所属工地：</strong>
+                                {% if task.worksite %}
+                                    <a href="{% url 'projects:worksite_detail' task.worksite.pk %}" class="text-decoration-none">
+                                        {{ task.worksite.name }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">无关联工地</span>
+                                {% endif %}
+                            </p>
+                            <p class="mb-2">
+                                <i class="fas fa-folder text-info"></i>
+                                <strong>所属项目：</strong>
+                                {% if task.worksite.project %}
+                                    <a href="{% url 'projects:project_detail' task.worksite.project.pk %}" class="text-decoration-none">
+                                        {{ task.worksite.project.name }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">无关联项目</span>
+                                {% endif %}
+                            </p>
+                            <small class="text-muted">
+                                <i class="fas fa-clock"></i>
+                                创建时间：{{ task.created_at|date:"Y-m-d H:i" }}
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="card-footer bg-transparent">
+                        <div class="d-flex justify-content-between">
+                            {% if task.worksite %}
+                                <a href="{% url 'projects:worksite_detail' task.worksite.pk %}"
+                                   class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-industry"></i> 查看工地
+                                </a>
+                            {% else %}
+                                <span class="btn btn-outline-secondary btn-sm disabled">
+                                    <i class="fas fa-eye-slash"></i> 无关联工地
+                                </span>
+                            {% endif %}
+                            <div class="btn-group" role="group">
+                                <a href="{% url 'tasks:task_detail' task.pk %}"
+                                   class="btn btn-primary btn-sm">
+                                    <i class="fas fa-info-circle"></i> 详情
+                                </a>
+                                <a href="{% url 'tasks:task_update' task.pk %}"
+                                   class="btn btn-success btn-sm">
+                                    <i class="fas fa-edit"></i> 编辑
+                                </a>
+                                <a href="{% url 'tasks:task_delete' task.pk %}"
+                                   class="btn btn-danger btn-sm"
+                                   onclick="return confirm('确认删除任务「{{ task.name }}」？此操作不可撤销！')">
+                                    <i class="fas fa-trash"></i> 删除
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="text-center py-5">
+        <div class="mb-4">
+            <i class="fas fa-tasks fa-5x text-muted"></i>
+        </div>
+        <h4 class="text-muted">暂无任务</h4>
+        <p class="text-muted">任务需要在工地中创建</p>
+        <div class="d-flex justify-content-center gap-3">
+            <a href="{% url 'projects:project_list' %}" class="btn btn-primary btn-lg">
+                <i class="fas fa-folder"></i> 查看项目
+            </a>
+            <a href="{% url 'drawings:drawing_list' %}" class="btn btn-outline-secondary btn-lg">
+                <i class="fas fa-file-pdf"></i> 查看图纸
+            </a>
+        </div>
+    </div>
+{% endif %}
+{% endblock %}

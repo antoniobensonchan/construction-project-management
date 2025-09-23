@@ -1,0 +1,665 @@
+{% extends 'base.html' %}
+
+{% block title %}编辑任务 - 建筑项目管理系统{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-edit"></i> 编辑任务
+                    </h4>
+                    <a href="{% url 'tasks:task_detail' task.pk %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> 返回详情
+                    </a>
+                </div>
+                
+                <div class="card-body">
+                    <form method="post" id="task-update-form">
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.name.id_for_label }}" class="form-label">
+                                        <i class="fas fa-tag"></i> {{ form.name.label }}
+                                    </label>
+                                    {{ form.name }}
+                                    {% if form.name.errors %}
+                                        <div class="text-danger small">{{ form.name.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.task_type.id_for_label }}" class="form-label">
+                                        <i class="fas fa-cogs"></i> {{ form.task_type.label }}
+                                    </label>
+                                    {{ form.task_type }}
+                                    {% if form.task_type.errors %}
+                                        <div class="text-danger small">{{ form.task_type.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.responsible_person.id_for_label }}" class="form-label">
+                                        <i class="fas fa-user"></i> {{ form.responsible_person.label }}
+                                    </label>
+                                    {{ form.responsible_person }}
+                                    {% if form.responsible_person.errors %}
+                                        <div class="text-danger small">{{ form.responsible_person.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="{{ form.deadline.id_for_label }}" class="form-label">
+                                        <i class="fas fa-calendar"></i> {{ form.deadline.label }}
+                                    </label>
+                                    <input type="date"
+                                           name="deadline"
+                                           class="form-control"
+                                           value="{{ task.deadline|date:'Y-m-d' }}"
+                                           required>
+                                    {% if form.deadline.errors %}
+                                        <div class="text-danger small">{{ form.deadline.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'tasks:task_detail' task.pk %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> 取消
+                            </a>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save"></i> 保存更改
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- 标注管理区域 -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-map-marker-alt"></i> 标注管理
+                        <span class="badge bg-primary ms-2">{{ task.annotations.count }} 个标注</span>
+                    </h5>
+                </div>
+                
+                <div class="card-body">
+                    <div class="row">
+                            <div class="col-md-8">
+                                <!-- 图纸预览区域 -->
+                                <div class="card">
+                                    <div class="card-header">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span>图纸预览与标注编辑</span>
+                                            {% if task.drawings.count > 1 %}
+                                            <select class="form-select form-select-sm" id="drawing-select" style="width: auto;">
+                                                {% for drawing in task.drawings.all %}
+                                                <option value="{{ drawing.pk }}" data-url="{{ drawing.file.url }}" data-name="{{ drawing.name }}">
+                                                    {{ drawing.name }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                            {% endif %}
+                                        </div>
+                                        <div class="btn-group" role="group">
+                                            <!-- 标注工具 -->
+                                            <button type="button" class="btn btn-sm btn-outline-primary" id="add-point-btn">
+                                                <i class="fas fa-circle"></i> 点标记
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-info" id="add-line-btn">
+                                                <i class="fas fa-minus"></i> 线条
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-success" id="add-text-btn">
+                                                <i class="fas fa-font"></i> 文字
+                                            </button>
+                                            <!-- 颜色选择 -->
+                                            <select class="form-select form-select-sm" id="color-select" style="width: auto;">
+                                                <option value="red">红色</option>
+                                                <option value="blue">蓝色</option>
+                                                <option value="green">绿色</option>
+                                                <option value="yellow">黄色</option>
+                                                <option value="orange">橙色</option>
+                                                <option value="purple">紫色</option>
+                                                <option value="black">黑色</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="card-body p-0">
+                                        <div id="annotation-editor" style="position: relative; height: 400px; overflow: auto;">
+                                            <!-- 图片显示 -->
+                                            {% if task.drawings.exists %}
+                                            <img id="drawing-image"
+                                                 src="{{ task.drawings.first.file.url }}"
+                                                 style="max-width: 100%; max-height: 400px; object-fit: contain;"
+                                                 alt="{{ task.drawings.first.name }}">
+                                            {% else %}
+                                            <div class="d-flex align-items-center justify-content-center h-100">
+                                                <div class="text-center">
+                                                    <i class="fas fa-image fa-3x text-muted mb-3"></i>
+                                                    <p class="text-muted">此任务没有关联图纸</p>
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                            
+                                            <!-- 标注编辑层 -->
+                                            <div id="annotation-edit-layer" 
+                                                 style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5;">
+                                                <!-- 标注元素将在这里显示 -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <!-- 标注列表 -->
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">标注列表</h6>
+                                    </div>
+                                    <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                                        <div id="annotation-list">
+                                            {% for annotation in task.annotations.all %}
+                                            <div class="annotation-item border rounded p-2 mb-2" data-annotation-id="{{ annotation.id }}">
+                                                <div class="d-flex justify-content-between align-items-start">
+                                                    <div class="flex-grow-1">
+                                                        <div class="d-flex align-items-center mb-1">
+                                                            <span class="badge bg-{{ annotation.color }} me-2">
+                                                                {% if annotation.is_point %}
+                                                                    <i class="fas fa-circle"></i>
+                                                                {% elif annotation.is_line %}
+                                                                    <i class="fas fa-minus"></i>
+                                                                {% elif annotation.is_text %}
+                                                                    <i class="fas fa-font"></i>
+                                                                {% endif %}
+                                                            </span>
+                                                            <small class="text-muted">{{ annotation.get_annotation_type_display }}</small>
+                                                        </div>
+                                                        <div class="annotation-content" style="font-size: 0.9em;">
+                                                            {{ annotation.content|truncatechars:30 }}
+                                                        </div>
+                                                    </div>
+                                                    <div class="btn-group-vertical btn-group-sm">
+                                                        <button class="btn btn-outline-primary btn-sm edit-annotation-btn" 
+                                                                data-annotation-id="{{ annotation.id }}">
+                                                            <i class="fas fa-edit"></i>
+                                                        </button>
+                                                        <button class="btn btn-outline-danger btn-sm delete-annotation-btn" 
+                                                                data-annotation-id="{{ annotation.id }}">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// 全局变量
+let currentTool = 'none';
+let currentColor = 'red';
+let annotations = [];
+let annotationCounter = 0;
+let isDrawingLine = false;
+let lineStartX = 0;
+let lineStartY = 0;
+
+// 加载现有标注数据
+const existingAnnotations = [
+    {% for annotation in task.annotations.all %}
+    {
+        id: {{ annotation.id }},
+        type: '{{ annotation.annotation_type }}',
+        x: {{ annotation.x_coordinate }},
+        y: {{ annotation.y_coordinate }},
+        {% if annotation.end_x %}endX: {{ annotation.end_x }},{% endif %}
+        {% if annotation.end_y %}endY: {{ annotation.end_y }},{% endif %}
+        color: '{{ annotation.color }}',
+        content: '{{ annotation.content|escapejs }}',
+        page: {{ annotation.page_number }}
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Task update page loaded');
+    console.log('Task ID: {{ task.id }}');
+    console.log('Annotations count: {{ task.annotations.count }}');
+    console.log('Existing annotations:', existingAnnotations);
+
+    // 初始化标注编辑器
+    initializeAnnotationEditor();
+
+    // 绑定工具按钮事件
+    bindToolEvents();
+
+    // 绑定标注管理事件
+    bindAnnotationEvents();
+
+    // 绑定图纸切换事件
+    bindDrawingSwitchEvents();
+
+    // 渲染现有标注
+    renderExistingAnnotations();
+});
+
+// 初始化标注编辑器
+function initializeAnnotationEditor() {
+    const editLayer = document.getElementById('annotation-edit-layer');
+    const drawingImage = document.getElementById('drawing-image');
+
+    if (!editLayer || !drawingImage) {
+        console.error('Annotation editor elements not found');
+        return;
+    }
+
+    // 设置编辑层尺寸
+    drawingImage.onload = function() {
+        const rect = drawingImage.getBoundingClientRect();
+        editLayer.style.width = rect.width + 'px';
+        editLayer.style.height = rect.height + 'px';
+        console.log('Edit layer size set:', rect.width, 'x', rect.height);
+    };
+
+    // 绑定点击事件
+    editLayer.addEventListener('click', handleEditLayerClick);
+}
+
+// 绑定工具按钮事件
+function bindToolEvents() {
+    const addPointBtn = document.getElementById('add-point-btn');
+    const addLineBtn = document.getElementById('add-line-btn');
+    const addTextBtn = document.getElementById('add-text-btn');
+    const colorSelect = document.getElementById('color-select');
+
+    if (addPointBtn) {
+        addPointBtn.addEventListener('click', () => selectTool('point'));
+    }
+    if (addLineBtn) {
+        addLineBtn.addEventListener('click', () => selectTool('line'));
+    }
+    if (addTextBtn) {
+        addTextBtn.addEventListener('click', () => selectTool('text'));
+    }
+    if (colorSelect) {
+        colorSelect.addEventListener('change', (e) => {
+            currentColor = e.target.value;
+            console.log('Color changed to:', currentColor);
+        });
+    }
+}
+
+// 绑定标注管理事件
+function bindAnnotationEvents() {
+    // 编辑按钮
+    document.querySelectorAll('.edit-annotation-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const annotationId = this.dataset.annotationId;
+            editAnnotation(annotationId);
+        });
+    });
+
+    // 删除按钮
+    document.querySelectorAll('.delete-annotation-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const annotationId = this.dataset.annotationId;
+            deleteAnnotation(annotationId);
+        });
+    });
+}
+
+// 绑定图纸切换事件
+function bindDrawingSwitchEvents() {
+    const drawingSelect = document.getElementById('drawing-select');
+    const drawingImage = document.getElementById('drawing-image');
+
+    if (drawingSelect && drawingImage) {
+        drawingSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const imageUrl = selectedOption.dataset.url;
+            const imageName = selectedOption.dataset.name;
+
+            if (imageUrl) {
+                drawingImage.src = imageUrl;
+                drawingImage.alt = imageName;
+                console.log('Switched to drawing:', imageName);
+
+                // 重新渲染当前图纸的标注
+                renderExistingAnnotations();
+            }
+        });
+    }
+}
+
+// 选择工具
+function selectTool(toolType) {
+    currentTool = toolType;
+    currentColor = document.getElementById('color-select').value;
+
+    // 更新按钮状态
+    document.querySelectorAll('[id^="add-"]').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.getElementById(`add-${toolType}-btn`).classList.add('active');
+
+    console.log('Tool selected:', toolType, 'Color:', currentColor);
+
+    // 更新光标
+    const editLayer = document.getElementById('annotation-edit-layer');
+    if (editLayer) {
+        editLayer.style.cursor = toolType === 'text' ? 'text' : 'crosshair';
+    }
+}
+
+// 处理编辑层点击
+function handleEditLayerClick(e) {
+    if (currentTool === 'none') {
+        alert('请先选择标注工具');
+        return;
+    }
+
+    const rect = e.target.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    console.log('Edit layer clicked:', x, y, 'Tool:', currentTool);
+
+    if (currentTool === 'point') {
+        createNewPointAnnotation(x, y);
+    } else if (currentTool === 'line') {
+        handleLineDrawing(x, y);
+    } else if (currentTool === 'text') {
+        createNewTextAnnotation(x, y);
+    }
+}
+
+// 创建新的点标注
+function createNewPointAnnotation(x, y) {
+    const content = prompt('请输入标注内容：');
+    if (!content) return;
+
+    const annotationData = {
+        type: 'point',
+        x_coordinate: x,
+        y_coordinate: y,
+        color: currentColor,
+        content: content
+    };
+
+    saveNewAnnotation(annotationData);
+}
+
+// 创建新的文字标注
+function createNewTextAnnotation(x, y) {
+    const content = prompt('请输入文字内容：');
+    if (!content) return;
+
+    const annotationData = {
+        type: 'text',
+        x_coordinate: x,
+        y_coordinate: y,
+        color: currentColor,
+        content: content
+    };
+
+    saveNewAnnotation(annotationData);
+}
+
+// 处理线条绘制
+function handleLineDrawing(x, y) {
+    if (!isDrawingLine) {
+        isDrawingLine = true;
+        lineStartX = x;
+        lineStartY = y;
+        alert('请点击线条终点');
+    } else {
+        isDrawingLine = false;
+        const content = prompt('请输入线条说明：');
+        if (!content) return;
+
+        const annotationData = {
+            type: 'line',
+            x_coordinate: lineStartX,
+            y_coordinate: lineStartY,
+            end_x: x,
+            end_y: y,
+            color: currentColor,
+            content: content
+        };
+
+        saveNewAnnotation(annotationData);
+    }
+}
+
+// 保存新标注
+function saveNewAnnotation(annotationData) {
+    console.log('Saving new annotation:', annotationData);
+
+    // 直接创建标注记录
+    fetch('/tasks/annotation/create/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            task_id: {{ task.id }},
+            annotation_type: annotationData.type,
+            x_coordinate: annotationData.x_coordinate,
+            y_coordinate: annotationData.y_coordinate,
+            end_x: annotationData.end_x,
+            end_y: annotationData.end_y,
+            color: annotationData.color,
+            content: annotationData.content,
+            page_number: 1
+        })
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response data:', data);
+        if (data.success) {
+            location.reload(); // 重新加载页面显示新标注
+        } else {
+            alert('保存失败：' + (data.error || '未知错误'));
+        }
+    })
+    .catch(error => {
+        console.error('Save error:', error);
+        alert('保存失败：' + error.message);
+    });
+}
+
+// 编辑标注
+function editAnnotation(annotationId) {
+    // 获取当前标注信息
+    const currentAnnotation = existingAnnotations.find(a => a.id == annotationId);
+    if (!currentAnnotation) {
+        alert('标注信息未找到');
+        return;
+    }
+
+    const newContent = prompt('请输入新的标注内容：', currentAnnotation.content);
+    if (newContent === null) return;
+
+    // 颜色选择
+    const colors = ['red', 'blue', 'green', 'yellow', 'orange', 'purple', 'black'];
+    const colorNames = ['红色', '蓝色', '绿色', '黄色', '橙色', '紫色', '黑色'];
+
+    let colorChoice = '';
+    for (let i = 0; i < colors.length; i++) {
+        colorChoice += `${i + 1}. ${colorNames[i]}\n`;
+    }
+
+    const colorIndex = prompt(`请选择颜色（输入数字1-7）：\n${colorChoice}`, '1');
+    if (colorIndex === null) return;
+
+    const selectedColor = colors[parseInt(colorIndex) - 1] || currentAnnotation.color;
+
+    fetch(`/tasks/annotation/${annotationId}/update/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            content: newContent,
+            color: selectedColor
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('更新失败：' + data.error);
+        }
+    });
+}
+
+// 删除标注
+function deleteAnnotation(annotationId) {
+    if (!confirm('确认删除此标注？')) return;
+
+    fetch(`/tasks/annotation/${annotationId}/delete/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('删除失败：' + data.error);
+        }
+    });
+}
+
+// 渲染现有标注
+function renderExistingAnnotations() {
+    const editLayer = document.getElementById('annotation-edit-layer');
+    if (!editLayer) return;
+
+    existingAnnotations.forEach(annotation => {
+        const element = createAnnotationElement(annotation);
+        editLayer.appendChild(element);
+    });
+}
+
+// 创建标注元素
+function createAnnotationElement(annotation) {
+    const element = document.createElement('div');
+    element.className = 'annotation-display';
+    element.dataset.annotationId = annotation.id;
+
+    if (annotation.type === 'point') {
+        element.style.cssText = `
+            position: absolute;
+            left: ${annotation.x - 6}px;
+            top: ${annotation.y - 6}px;
+            width: 12px;
+            height: 12px;
+            background-color: ${annotation.color};
+            border: 2px solid ${getDarkerColor(annotation.color)};
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 10;
+        `;
+        element.title = annotation.content;
+    } else if (annotation.type === 'line') {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+
+        const minX = Math.min(annotation.x, annotation.endX);
+        const minY = Math.min(annotation.y, annotation.endY);
+        const width = Math.abs(annotation.endX - annotation.x) + 10;
+        const height = Math.abs(annotation.endY - annotation.y) + 10;
+
+        svg.style.cssText = `
+            position: absolute;
+            left: ${minX - 5}px;
+            top: ${minY - 5}px;
+            width: ${width}px;
+            height: ${height}px;
+            cursor: pointer;
+            z-index: 10;
+        `;
+
+        line.setAttribute('x1', annotation.x - minX + 5);
+        line.setAttribute('y1', annotation.y - minY + 5);
+        line.setAttribute('x2', annotation.endX - minX + 5);
+        line.setAttribute('y2', annotation.endY - minY + 5);
+        line.setAttribute('stroke', annotation.color);
+        line.setAttribute('stroke-width', '3');
+
+        svg.appendChild(line);
+        element.appendChild(svg);
+        element.title = annotation.content;
+    } else if (annotation.type === 'text') {
+        element.style.cssText = `
+            position: absolute;
+            left: ${annotation.x}px;
+            top: ${annotation.y - 16}px;
+            background: rgba(255,255,255,0.9);
+            color: ${annotation.color};
+            font-weight: bold;
+            font-size: 12px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            border: 1px solid ${annotation.color};
+            cursor: pointer;
+            z-index: 10;
+            max-width: 150px;
+            word-wrap: break-word;
+        `;
+        element.textContent = annotation.content;
+    }
+
+    return element;
+}
+
+// 获取更深的颜色
+function getDarkerColor(color) {
+    const colorMap = {
+        'red': 'darkred',
+        'blue': 'darkblue',
+        'green': 'darkgreen',
+        'yellow': 'orange',
+        'orange': 'darkorange',
+        'purple': 'darkviolet',
+        'black': 'black'
+    };
+    return colorMap[color] || 'black';
+}
+</script>
+{% endblock %}

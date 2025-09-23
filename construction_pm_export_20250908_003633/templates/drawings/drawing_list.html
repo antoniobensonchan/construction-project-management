@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}图纸管理 - 建筑项目管理系统{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-file-pdf"></i> 图纸管理</h2>
+    <a href="{% url 'drawings:drawing_upload' %}" class="btn btn-orange btn-lg">
+        <i class="fas fa-upload"></i> 上传图纸
+    </a>
+</div>
+
+{% if drawings %}
+    <div class="row">
+        {% for drawing in drawings %}
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card drawing-card h-100">
+                    <!-- 缩略图 -->
+                    <div class="position-relative">
+                        {% if drawing.thumbnail %}
+                            <img src="{{ drawing.thumbnail.url }}" class="card-img-top" alt="{{ drawing.name }}" style="height: 180px; object-fit: cover;">
+                        {% else %}
+                            <div class="card-img-top d-flex align-items-center justify-content-center bg-light" style="height: 180px;">
+                                <div class="text-center text-muted">
+                                    <i class="fas fa-file-pdf fa-3x mb-2"></i>
+                                    <p class="mb-0">{% if drawing.page_count == 0 %}空白页{% else %}PDF图纸{% endif %}</p>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <!-- 页数标签 -->
+                        {% if drawing.page_count > 1 %}
+                        <span class="position-absolute top-0 end-0 badge bg-primary m-2">
+                            {{ drawing.page_count }} 页
+                        </span>
+                        {% endif %}
+
+                        <!-- 文件状态标签 -->
+                        {% if not drawing.is_valid %}
+                        <span class="position-absolute top-0 start-0 badge bg-danger m-2">
+                            <i class="fas fa-exclamation-triangle"></i> 损坏
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <h5 class="card-title text-truncate" title="{{ drawing.name }}">
+                                <i class="fas fa-file-pdf text-danger"></i>
+                                {{ drawing.name }}
+                            </h5>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item" href="{% url 'drawings:drawing_detail' drawing.pk %}">
+                                            <i class="fas fa-eye"></i> 预览
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item text-danger" href="{% url 'drawings:drawing_delete' drawing.pk %}">
+                                            <i class="fas fa-trash"></i> 删除
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="card-text">
+                            <small class="text-muted">
+                                <i class="fas fa-calendar"></i>
+                                上传时间：{{ drawing.uploaded_at|date:"Y-m-d H:i" }}
+                            </small><br>
+                            <small class="text-muted">
+                                <i class="fas fa-weight-hanging"></i>
+                                文件大小：{{ drawing.file_size_mb }} MB
+                            </small><br>
+                            {% if drawing.pdf_version %}
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle"></i>
+                                PDF版本：{{ drawing.pdf_version }}
+                            </small>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="card-footer bg-transparent">
+                        <div class="d-grid gap-2">
+                            {% if drawing.is_valid %}
+                                <a href="{% url 'drawings:drawing_detail' drawing.pk %}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-eye"></i> 查看图纸
+                                </a>
+                            {% else %}
+                                <button class="btn btn-secondary btn-sm" disabled>
+                                    <i class="fas fa-exclamation-triangle"></i> 文件损坏
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="text-center py-5">
+        <div class="mb-4">
+            <i class="fas fa-file-pdf fa-5x text-muted"></i>
+        </div>
+        <h4 class="text-muted">暂无图纸</h4>
+        <p class="text-muted">请先上传PDF图纸文件</p>
+        <a href="{% url 'drawings:drawing_upload' %}" class="btn btn-orange btn-lg">
+            <i class="fas fa-upload"></i> 上传第一张图纸
+        </a>
+    </div>
+{% endif %}
+{% endblock %}
