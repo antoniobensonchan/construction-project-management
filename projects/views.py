@@ -11,7 +11,11 @@ from .forms import ProjectForm, WorkSiteForm
 @login_required
 def project_list(request):
     """项目列表页面"""
-    projects = Project.objects.filter(owner=request.user).order_by('-created_at')
+    projects = Project.objects.filter(owner=request.user).select_related().prefetch_related(
+        'worksites',
+        'worksites__tasks',
+        'worksites__drawings'
+    ).order_by('-created_at')
     return render(request, 'projects/project_list.html', {
         'projects': projects
     })
@@ -39,10 +43,13 @@ def project_create(request):
 @login_required
 def project_detail(request, pk):
     """项目详情页面（项目主页）"""
-    project = get_object_or_404(Project, pk=pk, owner=request.user)
+    project = get_object_or_404(Project.objects.select_related(), pk=pk, owner=request.user)
 
     # 获取项目的工地
-    worksites = project.worksites.all().order_by('-created_at')
+    worksites = project.worksites.all().select_related().prefetch_related(
+        'tasks', 
+        'drawings'
+    ).order_by('-created_at')
 
     # 获取项目相关数据（通过工地）
     drawings = []
@@ -162,11 +169,20 @@ def worksite_create(request, project_pk):
 @login_required
 def worksite_detail(request, pk):
     """工地详情页面"""
-    worksite = get_object_or_404(WorkSite, pk=pk, project__owner=request.user)
+    worksite = get_object_or_404(
+        WorkSite.objects.select_related('project', 'project__owner'), 
+        pk=pk, 
+        project__owner=request.user
+    )
 
     # 获取工地相关数据
-    drawings = worksite.drawings.all().order_by('-uploaded_at')
-    all_tasks = worksite.tasks.all().order_by('-created_at')
+    drawings = worksite.drawings.all().select_related().order_by('-uploaded_at')
+    all_tasks = worksite.tasks.all().select_related(
+        'parent_task'
+    ).prefetch_related(
+        'subtasks',
+        'dependencies'
+    ).order_by('-created_at')
 
     # 分离主任务和子任务
     main_tasks = all_tasks.filter(parent_task__isnull=True)

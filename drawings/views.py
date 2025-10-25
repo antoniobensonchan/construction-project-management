@@ -14,7 +14,12 @@ def drawing_list(request):
     """图纸列表页面"""
     # 只显示用户拥有的项目下的图纸
     if request.user.is_authenticated:
-        drawings = Drawing.objects.filter(worksite__project__owner=request.user).order_by('-uploaded_at')
+        drawings = Drawing.objects.filter(
+            worksite__project__owner=request.user
+        ).select_related(
+            'worksite',
+            'worksite__project'
+        ).order_by('-uploaded_at')
     else:
         drawings = Drawing.objects.none()
 
@@ -97,15 +102,29 @@ def drawing_upload_ajax(request):
 
 def drawing_detail(request, pk):
     """图纸详情页面（预览）"""
-    drawing = get_object_or_404(Drawing, pk=pk)
+    drawing = get_object_or_404(
+        Drawing.objects.select_related('worksite', 'worksite__project'), 
+        pk=pk
+    )
 
     # 获取使用此图纸的所有任务（通过标注关联）
     related_tasks = Task.objects.filter(
         annotations__drawing=drawing
-    ).distinct().select_related('worksite', 'worksite__project')
+    ).distinct().select_related(
+        'worksite', 
+        'worksite__project',
+        'parent_task'
+    ).prefetch_related(
+        'subtasks',
+        'dependencies'
+    )
 
     # 获取此图纸上的所有标注
-    all_annotations = drawing.annotations.all().select_related('task', 'task__worksite')
+    all_annotations = drawing.annotations.all().select_related(
+        'task', 
+        'task__worksite',
+        'task__parent_task'
+    )
 
     return render(request, 'drawings/drawing_detail.html', {
         'drawing': drawing,

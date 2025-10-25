@@ -16,7 +16,15 @@ def task_list(request):
     if request.user.is_authenticated:
         tasks = Task.objects.filter(
             worksite__project__owner=request.user
-        ).select_related('worksite', 'worksite__project').order_by('-created_at')
+        ).select_related(
+            'worksite', 
+            'worksite__project',
+            'parent_task'
+        ).prefetch_related(
+            'subtasks',
+            'dependencies',
+            'drawings'
+        ).order_by('-created_at')
     else:
         tasks = Task.objects.none()
 
@@ -126,7 +134,19 @@ def task_create_step2(request):
 
 def task_detail(request, pk):
     """任务详情页面"""
-    task = get_object_or_404(Task, pk=pk)
+    task = get_object_or_404(
+        Task.objects.select_related(
+            'worksite', 
+            'worksite__project',
+            'parent_task'
+        ).prefetch_related(
+            'subtasks',
+            'dependencies',
+            'drawings',
+            'annotations'
+        ), 
+        pk=pk
+    )
 
     # 检查是否为子任务
     if task.parent_task:
@@ -140,7 +160,7 @@ def task_detail(request, pk):
         # 主任务使用完整的模板，包含图纸预览和子任务管理
         worksite_drawings = []
         if task.worksite:
-            worksite_drawings = task.worksite.drawings.all()
+            worksite_drawings = task.worksite.drawings.all().select_related()
 
         return render(request, 'tasks/task_detail.html', {
             'task': task,
